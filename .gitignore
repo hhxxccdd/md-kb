@@ -1,0 +1,6 @@
+# 【关键】创建 .gitignore 文件，写入以下内容
+node_modules
+.env
+dist
+build
+*.log

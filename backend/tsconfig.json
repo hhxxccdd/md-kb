@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    /* 基本选项 */
+    "target": "ES6",                          /* 指定 ECMAScript 目标版本: 'ES3' (default), 'ES5', 'ES6'/'ES2015' */
+    "module": "CommonJS",                     /* 指定模块代码生成: 'commonjs', 'es2015' */
+    "outDir": "./dist",                       /* 将编译后的文件输出到 './dist' 目录 */
+    "rootDir": "./src",                       /* 你的 TypeScript 源码在 './src' 目录 */
+    "strict": true,                           /* 启用所有严格类型检查选项 */
+    "esModuleInterop": true,                  /* 允许使用 import 导入 commonjs 模块 */
+    "skipLibCheck": true,                     /* 跳过声明文件的类型检查 */
+    "forceConsistentCasingInFileNames": true /* 禁止对同一个文件的不一致的引用 */
+  },
+  "include": ["src/**/*"],                    /* 包含 src 目录下的所有 ts 文件 */
+  "exclude": ["node_modules"]                 /* 排除 node_modules */
+}
