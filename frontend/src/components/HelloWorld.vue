@@ -1,41 +1,27 @@
-<script setup lang="ts">
-import { ref } from 'vue'
-
-defineProps<{ msg: string }>()
-
-const count = ref(0)
-</script>
-
 <template>
-  <h1>{{ msg }}</h1>
+   <div class="editor-container">
+      <h1>Markdown编辑器测试</h1>
+      <!-- 在模板中使用组件，用v-model绑定内容 -->
+      <MdEditor v-model="mdContent" style="height: 500px;"></MdEditor>
+   </div>
 
-  <div class="card">
-    <button type="button" @click="count++">count is {{ count }}</button>
-    <p>
-      Edit
-      <code>components/HelloWorld.vue</code> to test HMR
-    </p>
-  </div>
-
-  <p>
-    Check out
-    <a href="https://vuejs.org/guide/quick-start.html#local" target="_blank"
-      >create-vue</a
-    >, the official Vue + Vite starter
-  </p>
-  <p>
-    Learn more about IDE Support for Vue in the
-    <a
-      href="https://vuejs.org/guide/scaling-up/tooling.html#ide-support"
-      target="_blank"
-      >Vue Docs Scaling up Guide</a
-    >.
-  </p>
-  <p class="read-the-docs">Click on the Vite and Vue logos to learn more</p>
 </template>
 
+<script setup lang="ts">
+import {ref} from 'vue'
+//引入编辑器组件
+import { MdEditor } from 'md-editor-v3';
+//引入编辑器样式
+import 'md-editor-v3/lib/style.css';
+
+
+const mdContent = ref('# Hello, md-editor-v3! \n在这里输入你的 Markdown 内容...')
+</script>
+
 <style scoped>
-.read-the-docs {
-  color: #888;
+.editor-container{
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 </style>
