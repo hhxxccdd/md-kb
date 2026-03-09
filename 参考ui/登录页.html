@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>AI Markdown 协作知识库 - 登录</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background: linear-gradient(135deg, #f5f7fa 0%, #e4eaf5 100%); }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center px-4">
+    <!-- 登录卡片 -->
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
+        <!-- 品牌标题 -->
+        <div class="text-center mb-8">
+            <h1 class="text-[#165DFF] text-3xl font-bold flex items-center justify-center gap-2">
+                <i class="fa-solid fa-book-open-reader"></i>
+                AI Markdown 知识库
+            </h1>
+            <p class="text-gray-500 mt-2">多人实时协作 · AI 增强编辑</p>
+        </div>
+
+        <!-- 表单切换 -->
+        <div class="flex border rounded-lg mb-6">
+            <button class="w-1/2 py-2 bg-[#165DFF] text-white rounded-l-lg">登录</button>
+            <button class="w-1/2 py-2 text-gray-600">注册</button>
+        </div>
+
+        <!-- 登录表单 -->
+        <form class="space-y-5">
+            <div>
+                <label class="block text-gray-700 mb-1">邮箱</label>
+                <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF] focus:border-transparent" placeholder="请输入邮箱">
+            </div>
+            <div>
+                <label class="block text-gray-700 mb-1">密码</label>
+                <input type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF] focus:border-transparent" placeholder="请输入密码">
+            </div>
+
+            <!-- 操作栏 -->
+            <div class="flex justify-between items-center">
+                <label class="flex items-center gap-2 text-gray-600">
+                    <input type="checkbox" class="rounded">记住我
+                </label>
+                <a href="#" class="text-[#165DFF] text-sm">忘记密码？</a>
+            </div>
+
+            <!-- 登录按钮 -->
+            <button type="button" class="w-full py-3 bg-[#165DFF] text-white rounded-lg font-medium hover:bg-[#0E42D2] transition-colors">
+                登录
+            </button>
+        </form>
+
+        <!-- 底部版权 -->
+        <p class="text-center text-gray-400 text-sm mt-8">© 2026 AI Markdown 协作知识库</p>
+    </div>
+</body>
+</html>

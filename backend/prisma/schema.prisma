@@ -5,11 +5,18 @@
 // Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
 
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "postgresql"
-  url      =  env("DATABASE_URL")
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Document{
+  id         Int      @id@default(autoincrement())  //主键,自增数字
+  title      String                                 //文档标题(必填)
+  content    String?  @db.Text                      //文档内容(可选,长文本存Markdown)
+  createdAt  DateTime @default(now())               //创建时间(自动生成时间)
+  updatedAt  DateTime @updatedAt                     //更新时间(自动更新)
 }

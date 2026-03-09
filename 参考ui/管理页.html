@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>工作台 - AI Markdown 知识库</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-gray-50 h-screen flex overflow-hidden">
+    <!-- 左侧侧边栏 -->
+    <aside class="w-64 bg-white border-r border-gray-200 h-full flex flex-col">
+        <div class="p-4 border-b">
+            <h2 class="text-[#165DFF] font-bold text-lg flex items-center gap-2">
+                <i class="fa-solid fa-bars"></i> 知识库
+            </h2>
+        </div>
+        <!-- 新建按钮 -->
+        <button class="mx-4 my-4 py-2 bg-[#165DFF] text-white rounded-lg flex items-center justify-center gap-2">
+            <i class="fa-solid fa-plus"></i> 新建文档
+        </button>
+        <!-- 文件夹/文档列表 -->
+        <nav class="flex-1 overflow-y-auto p-2 space-y-1">
+            <p class="text-gray-500 text-sm px-3 py-2">我的文件夹</p>
+            <a href="#" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 text-gray-700">
+                <i class="fa-solid fa-folder text-yellow-400"></i> 学习笔记
+            </a>
+            <a href="#" class="flex items-center gap-2 px-3 py-2 rounded hover:bg-gray-100 text-gray-700">
+                <i class="fa-solid fa-folder text-yellow-400"></i> 工作文档
+            </a>
+            <p class="text-gray-500 text-sm px-3 py-2 mt-4">最近文档</p>
+            <a href="editor.html" class="flex items-center gap-2 px-3 py-2 rounded bg-blue-50 text-[#165DFF]">
+                <i class="fa-solid fa-file-lines"></i> Vue3 学习笔记
+            </a>
+        </nav>
+        <!-- 用户信息 -->
+        <div class="p-4 border-t flex items-center gap-3">
+            <img src="https://picsum.photos/40" class="w-10 h-10 rounded-full">
+            <div>
+                <p class="font-medium text-sm">前端开发者</p>
+                <p class="text-gray-400 text-xs">在线</p>
+            </div>
+        </div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 flex flex-col overflow-hidden">
+        <!-- 顶部导航 -->
+        <header class="h-16 bg-white border-b flex items-center justify-between px-6">
+            <div class="flex items-center gap-4">
+                <input type="text" placeholder="搜索文档..." class="w-64 px-4 py-2 bg-gray-100 rounded-lg border-none focus:outline-none">
+            </div>
+            <div class="flex items-center gap-4">
+                <button class="text-gray-600"><i class="fa-solid fa-moon"></i></button>
+                <button class="text-gray-600"><i class="fa-solid fa-bell"></i></button>
+                <button class="text-gray-600"><i class="fa-solid fa-gear"></i></button>
+            </div>
+        </header>
+
+        <!-- 内容面板 -->
+        <div class="flex-1 overflow-y-auto p-6">
+            <h1 class="text-2xl font-bold text-gray-800 mb-6">工作台</h1>
+            
+            <!-- AI快捷功能区 -->
+            <div class="grid grid-cols-4 gap-4 mb-8">
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <i class="fa-solid fa-wand-magic-sparkles text-[#165DFF] text-xl"></i>
+                    <h3 class="font-medium mt-2">AI 润色</h3>
+                    <p class="text-gray-500 text-sm">优化文档语句</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <i class="fa-solid fa-sitemap text-[#165DFF] text-xl"></i>
+                    <h3 class="font-medium mt-2">生成脑图</h3>
+                    <p class="text-gray-500 text-sm">一键结构化</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <i class="fa-solid fa-comments text-[#165DFF] text-xl"></i>
+                    <h3 class="font-medium mt-2">文档问答</h3>
+                    <p class="text-gray-500 text-sm">AI 智能解答</p>
+                </div>
+                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                    <i class="fa-solid fa-code text-[#165DFF] text-xl"></i>
+                    <h3 class="font-medium mt-2">代码优化</h3>
+                    <p class="text-gray-500 text-sm">自动调试修复</p>
+                </div>
+            </div>
+
+            <!-- 最近文档 -->
+            <div class="bg-white rounded-xl p-6 shadow-sm border">
+                <h2 class="font-bold text-lg mb-4">最近编辑</h2>
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg">
+                        <div class="flex items-center gap-3">
+                            <i class="fa-solid fa-file-lines text-gray-400"></i>
+                            <div>
+                                <p class="font-medium">TypeScript 基础教程</p>
+                                <p class="text-gray-400 text-xs">今天 14:30</p>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-green-100 text-green-600 px-2 py-1 rounded">可协作</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+</html>

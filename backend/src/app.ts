@@ -7,13 +7,13 @@ import * as dotenv from 'dotenv'
 dotenv.config()
 
 //定义API配置
-const API_URL = 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'
+const API_URL = process.env.API_URL ?? 'https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation'
 const API_KEY = process.env.TONGYI_API_KEY
 
 const app = express();
 const PORT = 3000;
 
-// 中间件
+
 app.use(cors());
 app.use(express.json());
 
