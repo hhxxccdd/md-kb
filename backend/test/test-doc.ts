@@ -1,4 +1,4 @@
-import prisma from '../src/prisma'
+import prisma from '../src/utils/prisma'
 
 async function test() {
   // 1. 创建文档

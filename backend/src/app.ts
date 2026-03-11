@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import axios from 'axios';
 import * as dotenv from 'dotenv'
+import docrouter from './routes/doc';
+import { globalErrorHandler } from './middleware/errorMiddleware';
 
 //加载.env文件中的环境变量
 dotenv.config()
@@ -57,6 +59,9 @@ app.get('/TONGYI', (req: express.Request, res: express.Response) => {
       
 })
 
+app.use('/api/doc',docrouter)
+
+app.use(globalErrorHandler)
 
 
 // 启动服务
