@@ -9,10 +9,10 @@
                 </div>
 
                 <div class="editor-head-text">
-                    <p> Vue3 学习笔记</p>
+                    <p> {{ title }}</p>
                 </div>
 
-                <div class="editor-head-status"> 未保存 </div>
+                <div class="editor-head-status"> {{ status }} </div>
             </div>
 
             <div class="editor-head-right">
@@ -53,21 +53,104 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted, watch } from 'vue'
 //引入编辑器组件
 import { MdEditor } from 'md-editor-v3';
 //引入编辑器样式
 import 'md-editor-v3/lib/style.css';
 //引入elementplus图标样式
 import { Back } from '@element-plus/icons-vue'
+import request from '../utils/request';
+import { useRouter } from 'vue-router';
 
 
-const mdContent = ref('# Hello, md-editor-v3! \n在这里输入你的 Markdown 内容...')
+const router = useRouter()
+const mdContent = ref('')
+const title = ref('')
+const status = ref('已保存')
+const id = 1
 
+// 用于对比的原始数据（从服务器获取的最新数据）
+const originalContent = ref('')
+const originalTitle = ref('')
 const state = reactive({
     circleUrl:
         'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg',
 })
+
+if (id) {
+    onMounted(async () => {
+        const res = await request.get(`/doc/${id}`)
+        console.log(res)
+        title.value = res.data.title
+        mdContent.value = res.data.content
+        // 保存原始数据用于对比
+        originalTitle.value = res.data.title
+        originalContent.value = res.data.content
+    })
+}
+
+//添加防抖处理
+const debounce = (fn: Function, delay: number = 300): Function => {
+    let timer: any = null
+    return (...args: any[]) => {
+        clearTimeout(timer)
+        timer = setTimeout(() => {
+            fn(...args)
+        }, delay) //300ms才解析
+    }
+}
+
+//解析函数，第一行直接变标题
+const parseMarkdown = (text: string) => {
+    if (!text) {
+        title.value = ''
+        return
+    }
+    const lines = text.split('\n')
+    const firstLine = lines[0]
+    if (firstLine?.startsWith('# ')) {
+        title.value = firstLine.slice(2) ?? ''
+    }else{
+        title.value = firstLine || ''
+    }
+
+}
+
+//自动保存
+const handleChange = async () => {
+
+    status.value = '未保存'
+    if (id) {
+        await request.post(`/doc/${id}`, {
+            title: title.value,
+            content: mdContent.value
+        })
+       
+    }else {
+        const res = await request.post('/doc', {
+            title:title.value || '未命名文档',
+            content:mdContent.value
+        })
+        router.push(`/edito/${res.data.id}`)
+    }
+    status.value = '已保存'
+}
+
+const debounceParse = debounce(parseMarkdown, 300)
+const debounceHandle = debounce(handleChange,800)
+
+watch(mdContent, (newVal) => {
+    status.value = '未保存'
+    debounceParse(newVal)
+    debounceHandle(newVal)
+})
+
+
+
+
+
+
 </script>
 
 <style scoped>
@@ -107,21 +190,21 @@ const state = reactive({
     flex: 1;
 }
 
-.share{
+.share {
     margin-right: 20px;
 }
 
-.avatar-1{
+.avatar-1 {
     z-index: 1;
 }
 
-.avatar-2{
+.avatar-2 {
     z-index: 2;
     margin-left: -12px;
 }
 
 :deep(.el-avatar) {
-  border: 2px solid #ffffff !important;
+    border: 2px solid #ffffff !important;
 }
 
 .avatar {

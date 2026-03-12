@@ -26,7 +26,6 @@ router.get('/', asyncHandler(async (req, res) => {
 //新建文档
 router.post('/', asyncHandler(async (req, res) => {
     const { title, content } = req.body
-    console.log(title,content)
     if (!title) throwBusinessError('文档标题不能为空')
 
     const doc = await prisma.document.create({
