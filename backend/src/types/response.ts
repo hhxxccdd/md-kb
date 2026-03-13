@@ -5,6 +5,6 @@ export interface ApiResponse{
 }
 
 export const ApiCode = {
-    Success: 0,
+    Success: 1,
     Error:-1
 } as const

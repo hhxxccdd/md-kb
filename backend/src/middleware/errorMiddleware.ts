@@ -6,7 +6,7 @@ import { ApiResponse,ApiCode } from "../types/response";
 export const globalErrorHandler = (err:Error,req:Request,res:Response,next:NextFunction) => {
 
        let code = ApiCode.Error
-       let msg = '服务器异常'
+       let msg = err.message
        let statusCode = 500
 
        //Prisma数据库错误

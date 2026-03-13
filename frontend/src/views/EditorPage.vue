@@ -21,7 +21,7 @@
                     <el-button type="primary" dashed>AI润色</el-button>
                     <el-button type="primary" dashed>生成目录</el-button>
                     <el-button type="primary" dashed>代码优化</el-button>
-                    <el-button type="primary" dashed>导出</el-button>
+                    <el-button type="primary" @click="exportMarkdown" dashed>导出</el-button>
                 </div>
                 <div class="editor-head-right-func">
 
@@ -46,109 +46,58 @@
         </div>
         <div class="editor-container">
             <!-- 在模板中使用组件，用v-model绑定内容 -->
-            <MdEditor v-model="mdContent" style="height: 100%;"></MdEditor>
+            <MyMdEditor :id="id" @update:title="title = $event" @update:status="status = $event" theme="light"   @update:editor-content="editorCotent = $event">
+            </MyMdEditor>
         </div>
     </div>
 
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
-//引入编辑器组件
-import { MdEditor } from 'md-editor-v3';
-//引入编辑器样式
-import 'md-editor-v3/lib/style.css';
+import { ref, reactive } from 'vue'
+import MyMdEditor from '../component/MyMdEditor.vue';
 //引入elementplus图标样式
 import { Back } from '@element-plus/icons-vue'
-import request from '../utils/request';
-import { useRouter } from 'vue-router';
 
-
-const router = useRouter()
-const mdContent = ref('')
-const title = ref('')
-const status = ref('已保存')
 const id = 1
+const title = ref('')
+const status = ref('')
+const editorCotent = ref('')
 
-// 用于对比的原始数据（从服务器获取的最新数据）
-const originalContent = ref('')
-const originalTitle = ref('')
 const state = reactive({
     circleUrl:
         'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg',
 })
 
-if (id) {
-    onMounted(async () => {
-        const res = await request.get(`/doc/${id}`)
-        console.log(res)
-        title.value = res.data.title
-        mdContent.value = res.data.content
-        // 保存原始数据用于对比
-        originalTitle.value = res.data.title
-        originalContent.value = res.data.content
-    })
+/**
+ * 导出MD文件的核心方法
+ */
+const exportMarkdown = () => {
+  // 1. 校验空内容
+  if (!editorCotent.value.trim()) {
+    alert('请输入内容后再导出！')
+    return
+  }
+
+  // 2. 创建文件对象（指定编码和MIME类型，防止乱码）
+  const blob = new Blob([editorCotent.value], {
+    type: 'text/markdown;charset=utf-8'
+  })
+
+  // 3. 生成临时下载链接
+  const downloadUrl = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  
+  // 4. 配置下载参数（自定义文件名：时间戳+md后缀，避免重名）
+  link.href = downloadUrl
+  link.download = `markdown_${new Date().getTime()}.md`
+
+  // 5. 触发下载并清理临时元素
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+  URL.revokeObjectURL(downloadUrl)
 }
-
-//添加防抖处理
-const debounce = (fn: Function, delay: number = 300): Function => {
-    let timer: any = null
-    return (...args: any[]) => {
-        clearTimeout(timer)
-        timer = setTimeout(() => {
-            fn(...args)
-        }, delay) //300ms才解析
-    }
-}
-
-//解析函数，第一行直接变标题
-const parseMarkdown = (text: string) => {
-    if (!text) {
-        title.value = ''
-        return
-    }
-    const lines = text.split('\n')
-    const firstLine = lines[0]
-    if (firstLine?.startsWith('# ')) {
-        title.value = firstLine.slice(2) ?? ''
-    }else{
-        title.value = firstLine || ''
-    }
-
-}
-
-//自动保存
-const handleChange = async () => {
-
-    status.value = '未保存'
-    if (id) {
-        await request.post(`/doc/${id}`, {
-            title: title.value,
-            content: mdContent.value
-        })
-       
-    }else {
-        const res = await request.post('/doc', {
-            title:title.value || '未命名文档',
-            content:mdContent.value
-        })
-        router.push(`/edito/${res.data.id}`)
-    }
-    status.value = '已保存'
-}
-
-const debounceParse = debounce(parseMarkdown, 300)
-const debounceHandle = debounce(handleChange,800)
-
-watch(mdContent, (newVal) => {
-    status.value = '未保存'
-    debounceParse(newVal)
-    debounceHandle(newVal)
-})
-
-
-
-
 
 
 </script>
