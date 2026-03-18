@@ -1,6 +1,6 @@
 import express, { Router, Request, Response } from 'express'
 import { throwBusinessError } from '../middleware/errorMiddleware'
-import multer, { Multer } from 'multer'
+import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { success } from '../utils/response'

@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import path from 'path';
 import docrouter from './routes/doc';
-import aiRouter from './routes/ai'
+import aiRouter from './service/ai/controller'
 import uploadRouter from './routes/upload'
 import { globalErrorHandler } from './middleware/errorMiddleware';
 

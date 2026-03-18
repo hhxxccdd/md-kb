@@ -1,0 +1,58 @@
+<!DOCTYPE html > 
+ <html> 
+
+
+ <head> 
+   <meta charset ="UTF-8"> 
+   <title>AI流式测试</title> 
+ </head> 
+
+
+ <body> 
+   <h3>AI流式响应测试</h3> 
+   <textarea id ="prompt" rows ="3" cols ="50" placeholder ="请输入问题"></textarea> 
+   <button onclick =" testStream ()">发送</button> 
+   <div id ="result" style ="margin-top:20px; white-space: pre-wrap;"></div> 
+
+
+   <script> 
+     async function testStream () { 
+       const prompt = document. getElementById ('prompt').value; 
+       const resultDom = document. getElementById ('result'); 
+       resultDom.innerHTML = ''; 
+
+
+       const response = await fetch ('http://localhost:3000/api/ai/test-stream', { 
+         method: 'POST', 
+         headers: { 'Content-Type': 'application/json' }, 
+         body: JSON. stringify ({ prompt }) 
+       }); 
+
+
+       const reader = response.body?. getReader (); 
+       const decoder = new TextDecoder (); 
+       while (true) { 
+         const { done, value } = await reader?. read () || {}; 
+         if (done) break; 
+         const text = decoder. decode (value); 
+         // 按 SSE 规范分割成多条消息 
+         const events = text. split ('\n\n'); 
+         for (const event of events) { 
+           if (!event. startsWith ('data:')) continue; 
+           const jsonStr = event. slice (5); 
+           if (jsonStr === '[DONE]') continue; 
+           try { 
+             const data = JSON. parse (jsonStr); 
+             // 只渲染 content 部分，避免 undefined 
+             if (data.content) resultDom.innerHTML += data.content; 
+           } catch (e) { 
+             console. warn ('前端解析忽略:', e); 
+           } 
+         } 
+       } 
+   } 
+   </script> 
+ </body> 
+
+
+ </html>

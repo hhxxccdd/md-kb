@@ -46,7 +46,7 @@
         </div>
         <div class="editor-container">
             <!-- 在模板中使用组件，用v-model绑定内容 -->
-            <MyMdEditor :id="id" @update:title="title = $event" @update:status="status = $event" theme="light"   @update:editor-content="editorCotent = $event">
+            <MyMdEditor :id="id"  @update:title="title = $event" @update:status="status = $event" theme="dark"   @update:editor-content="editorCotent = $event">
             </MyMdEditor>
         </div>
     </div>
