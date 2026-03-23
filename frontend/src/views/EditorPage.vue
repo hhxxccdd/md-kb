@@ -7,26 +7,20 @@
                         <Back />
                     </el-icon>
                 </div>
-
                 <div class="editor-head-text">
                     <p> {{ title }}</p>
                 </div>
-
                 <div class="editor-head-status"> {{ status }} </div>
             </div>
-
             <div class="editor-head-right">
-
                 <div class="editor-head-right-ai">
-                    <el-button type="primary" dashed>AI润色</el-button>
+                    <el-button type="primary" @click="openAiModal('polish')" dashed>AI润色</el-button>
                     <el-button type="primary" dashed>生成目录</el-button>
                     <el-button type="primary" dashed>代码优化</el-button>
                     <el-button type="primary" @click="exportMarkdown" dashed>导出</el-button>
                 </div>
                 <div class="editor-head-right-func">
-
                     <div class="avatar">
-
                         <div class="avatar-1">
                             <el-avatar :size="30" :src="state.circleUrl" />
                         </div>
@@ -34,20 +28,21 @@
                             <el-avatar :size="30" :src="state.circleUrl" />
                         </div>
                     </div>
-
                     <div class="share">
                         <el-button type="primary">分享</el-button>
                     </div>
-
                 </div>
-
             </div>
-
         </div>
         <div class="editor-container">
             <!-- 在模板中使用组件，用v-model绑定内容 -->
-            <MyMdEditor :id="id"  @update:title="title = $event" @update:status="status = $event" theme="dark"   @update:editor-content="editorCotent = $event">
+            <MyMdEditor ref="myMdEditorRef" :id="id" @update:title="title = $event" @update:status="status = $event"
+                theme="dark" @update:editor-content="editorCotent = $event">
             </MyMdEditor>
+        </div>
+        <div>
+            <!-- AI弹窗 -->
+            <AiModel v-model:visible="modalVisible" :mode="aiMode" :text="selectedText" @replace="replace" />
         </div>
     </div>
 
@@ -55,48 +50,83 @@
 
 <script setup lang="ts">
 import { ref, reactive } from 'vue'
-import MyMdEditor from '../component/MyMdEditor.vue';
+import MyMdEditor from '../component/editor/MyMdEditor.vue';
 //引入elementplus图标样式
 import { Back } from '@element-plus/icons-vue'
+import AiModel from '../component/ai/AiModel.vue';
 
 const id = 1
-const title = ref('')
-const status = ref('')
-const editorCotent = ref('')
+const title = ref<string>('')
+const status = ref<string>('')
+const editorCotent = ref<string>('')
 
 const state = reactive({
     circleUrl:
         'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg',
 })
 
+//获取封装组件myMdEditor实例
+const myMdEditorRef = ref<typeof MyMdEditor>()
+
+//AI弹窗实例
+const modalVisible = ref<boolean>(false)
+const aiMode = ref<'polish' | 'translate'>('polish')
+const selectedText = ref<string>('')
+
+
+// ======================================
+// 按钮点击：获取选中文字（调用暴露的方法）
+// ======================================
+const openAiModal = (mode: 'polish' | 'translate') => {
+    if (!myMdEditorRef.value) return
+    // ✅ 获取选中文本（从你的封装组件里拿）
+    selectedText.value = myMdEditorRef.value?.getSelectedText()
+    if (!selectedText.value.trim()) {
+        alert('请先选中文本')
+        return
+    }
+    aiMode.value = mode
+    modalVisible.value = true
+
+    // myMdEditorRef.value?.replaceSelection('我是Hhxc')
+}
+
+//替换ai内容
+const replace = (val: string) => {
+
+    myMdEditorRef.value?.replaceSelection(val)
+
+}
+
+
 /**
  * 导出MD文件的核心方法
  */
 const exportMarkdown = () => {
-  // 1. 校验空内容
-  if (!editorCotent.value.trim()) {
-    alert('请输入内容后再导出！')
-    return
-  }
+    // 1. 校验空内容
+    if (!editorCotent.value.trim()) {
+        alert('请输入内容后再导出！')
+        return
+    }
 
-  // 2. 创建文件对象（指定编码和MIME类型，防止乱码）
-  const blob = new Blob([editorCotent.value], {
-    type: 'text/markdown;charset=utf-8'
-  })
+    // 2. 创建文件对象（指定编码和MIME类型，防止乱码）
+    const blob = new Blob([editorCotent.value], {
+        type: 'text/markdown;charset=utf-8'
+    })
 
-  // 3. 生成临时下载链接
-  const downloadUrl = URL.createObjectURL(blob)
-  const link = document.createElement('a')
-  
-  // 4. 配置下载参数（自定义文件名：时间戳+md后缀，避免重名）
-  link.href = downloadUrl
-  link.download = `markdown_${new Date().getTime()}.md`
+    // 3. 生成临时下载链接
+    const downloadUrl = URL.createObjectURL(blob)
+    const link = document.createElement('a')
 
-  // 5. 触发下载并清理临时元素
-  document.body.appendChild(link)
-  link.click()
-  document.body.removeChild(link)
-  URL.revokeObjectURL(downloadUrl)
+    // 4. 配置下载参数（自定义文件名：时间戳+md后缀，避免重名）
+    link.href = downloadUrl
+    link.download = `markdown_${new Date().getTime()}.md`
+
+    // 5. 触发下载并清理临时元素
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(downloadUrl)
 }
 
 

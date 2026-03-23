@@ -1,29 +1,31 @@
 <template>
-    <MdEditor v-model="editorContent" :toolbars="mybars" :theme="theme" :onUploadImg="handleUploadImg" :preview="true"
-        :emoji="customEmojis" style="height: 100%">
+    <MdEditor ref="editorRef" v-model="editorContent" :toolbars="mybars" :theme="theme" :onUploadImg="handleUploadImg"
+        :preview="true" :emoji="customEmojis" style="height: 100%">
         <template #defToolbars>
             <Emoji :emojis="allEmojis">
             </Emoji>
             <ExportPDF :modelValue="editorContent" />
         </template>
     </MdEditor>
+
 </template>
 
 
 <script setup lang="ts">
-import { onMounted, ref, watch } from 'vue'
+import { nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import { MdEditor } from 'md-editor-v3';
 import type { ToolbarNames } from 'md-editor-v3';
-import request from '../utils/request';
+import request from '../../utils/request';
 import 'md-editor-v3/lib/style.css';
+import type { ExposeParam } from 'md-editor-v3';
 import { Emoji, ExportPDF } from '@vavt/v3-extension'
 // 只导入 Emoji 组件需要的样式
 import "@vavt/v3-extension/lib/asset/Emoji.css";
 import '@vavt/v3-extension/lib/asset/ExportPDF.css';
 
+const router = useRouter()
 const mybars: ToolbarNames[] = ['bold', 'code', 'image', 'mermaid', 'katex', 'fullscreen', '-', 0, 1]; // 你的固定配置
-
 //自定义表情包
 const customEmojis = [
     '🤡', '💀'
@@ -33,10 +35,11 @@ const componentDefaultEmojis = Emoji.props.emojis.default
 // 2. 合并：官方默认表情 + 你的自定义表情
 const allEmojis = [...componentDefaultEmojis, ...customEmojis]
 
-const router = useRouter()
-
 const title = ref('')
 const editorContent = ref('')
+
+//获取编辑器实例
+const editorRef = ref<ExposeParam>();
 
 //定义Props，接受父组件传值
 const { id, theme } = defineProps<{
@@ -48,8 +51,27 @@ const { id, theme } = defineProps<{
 const emit = defineEmits<{
     'update:title': [val: string]
     'update:status': [val: string]
-    'update:editorContent':[val:string]
+    'update:editorContent': [val: string]
 }>()
+
+//将编辑器的方法暴漏给父组件
+defineExpose({
+    //获取选中文本
+    getSelectedText: () => {
+        return editorRef.value?.getSelectedText()
+    },
+    //替换选中文本
+    replaceSelection: (replaceText: string) => {
+        //获取选中的文本
+        const selsctedText = editorRef.value?.getSelectedText()
+        if (!selsctedText) return
+
+        //直接替换响应式变量
+        editorContent.value = editorContent.value.replace(selsctedText, replaceText)
+    }
+})
+
+
 
 
 //防抖
@@ -118,7 +140,6 @@ const handleUploadImg = async (files: File[], callBack: (urls: string[]) => void
         // 失败必须调用空回调，防止编辑器卡住
         callBack([])
     }
-
 }
 
 // 防抖
@@ -148,7 +169,8 @@ watch(editorContent, (newVal) => {
 })
 
 // 初始化
-onMounted(() => {
+onMounted(async () => {
+    await nextTick()
     loadDoc()
 })
 // id变化重新加载
