@@ -34,14 +34,6 @@ export async function handleAIStream(req: Request, res: Response, templateType: 
                 const translateTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["translate"]
                 prompt = translateTemplate(escapePromptContent(params.content), escapePromptContent(params.targetLang))
                 break;
-            case "generateToc":
-                const generateTocTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["generateToc"]
-                prompt = generateTocTemplate(escapePromptContent(params.content));
-                break;
-            case "optimizeCode":
-                const optimizeCodeTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["optimizeCode"]
-                prompt = optimizeCodeTemplate(escapePromptContent(params.code), escapePromptContent(params.techStack));
-                break;
             case "answerDoc":
                 const answerDocTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["answerDoc"]
                 prompt = answerDocTemplate(escapePromptContent(params.docContent), escapePromptContent(params.question));

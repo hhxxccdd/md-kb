@@ -4,7 +4,6 @@ export interface ChatMessage {
     content: string
 }
 
-
 //AI 请求参数
 export interface ChatParams {
     model: string

@@ -14,10 +14,11 @@
             </div>
             <div class="editor-head-right">
                 <div class="editor-head-right-ai">
+                    <!-- 'polish' | 'translate' | 'toc' | 'codeOpt' | 'qa' -->
                     <el-button type="primary" @click="openAiModal('polish')" dashed>AI润色</el-button>
-                    <el-button type="primary" dashed>生成目录</el-button>
-                    <el-button type="primary" dashed>代码优化</el-button>
-                    <el-button type="primary" @click="exportMarkdown" dashed>导出</el-button>
+                    <el-button type="primary" @click="openAiModal('translate')" dashed>AI翻译</el-button>
+                    <el-button type="primary" @click="openAiModal('answerDoc')" dashed>文档问答</el-button>
+                    <el-button type="primary"  @click="exportMarkdown" dashed>导出</el-button>
                 </div>
                 <div class="editor-head-right-func">
                     <div class="avatar">
@@ -42,7 +43,8 @@
         </div>
         <div>
             <!-- AI弹窗 -->
-            <AiModel v-model:visible="modalVisible" :mode="aiMode" :text="selectedText" @replace="replace" />
+            <AiModel v-model:visible="modalVisible" :mode="aiMode" :text="selectedText" @replace="replace"
+                :documentContext="editorCotent" />
         </div>
     </div>
 
@@ -70,24 +72,23 @@ const myMdEditorRef = ref<typeof MyMdEditor>()
 
 //AI弹窗实例
 const modalVisible = ref<boolean>(false)
-const aiMode = ref<'polish' | 'translate'>('polish')
+const aiMode = ref<'polish' | 'translate'   | 'answerDoc'>('polish')
 const selectedText = ref<string>('')
 
 
 // ======================================
 // 按钮点击：获取选中文字（调用暴露的方法）
 // ======================================
-const openAiModal = (mode: 'polish' | 'translate') => {
+const openAiModal = (mode: 'polish' | 'translate'  | 'answerDoc') => {
     if (!myMdEditorRef.value) return
     // ✅ 获取选中文本（从你的封装组件里拿）
     selectedText.value = myMdEditorRef.value?.getSelectedText()
-    if (!selectedText.value.trim()) {
+    if (!selectedText.value.trim() && mode !== 'answerDoc') {
         alert('请先选中文本')
         return
     }
     aiMode.value = mode
     modalVisible.value = true
-
     // myMdEditorRef.value?.replaceSelection('我是Hhxc')
 }
 
@@ -214,6 +215,7 @@ const exportMarkdown = () => {
     display: flex;
     align-items: center;
     justify-content: center;
+    cursor: pointer;
 }
 
 .editor-head-text {

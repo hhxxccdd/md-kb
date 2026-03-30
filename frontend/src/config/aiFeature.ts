@@ -1,35 +1,8 @@
-import type { AIFeatureConfig } from '../types/ai'
+import type { AIFeatureConfig } from '../type/ai'
 
-export const AI_FEATURES: AIFeatureConfig[] = [
-    {
-        key: 'polish',
-        label: 'AI润色',
-        path: '/api/ai/polish',
-        placeholder: '请输入需要润色的文本'
-    },
-    {
-        key: 'translate',
-        label: 'AI翻译',
-        path: '/api/ai/translate',
-        placeholder: '请输入需要翻译的文本'
-    },
-    {
-        key: 'generateToc',
-        label: '生成目录',
-        path: '/api/ai/generate-toc',
-        placeholder: '请粘贴文档内容以生成目录'
-    },
-    {
-        key: 'optimizeCode',
-        label: '代码优化',
-        path: '/api/ai/optimize-code',
-        placeholder: '请输入需要优化的代码片段'
-    },
-    {
-        key: 'answerDoc',
-        label: '文档问答',
-        path: '/api/ai/answer-doc',
-        needContext: true,
-        placeholder: '请输入你的问题'
-    }
-]
+export const AI_FEATURES: Record<string, AIFeatureConfig> = {
+    polish: { key: 'polish', title: '✨ AI 润色', url: 'http://localhost:3000/api/ai/polish' },
+    translate: { key: 'translate', title: '🌐 AI 翻译', url: 'http://localhost:3000/api/ai/translate' },
+    toc: { key: 'toc', title: '📑 生成目录', url: 'http://localhost:3000/api/ai/generate-toc' },
+    answerDoc: { key: 'answerDoc', title: '💬 文档问答', url: 'http://localhost:3000/api/ai/answer-doc' },
+}

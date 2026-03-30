@@ -2,32 +2,55 @@
   <div v-if="visible" class="ai-modal-overlay">
     <div class="ai-modal-content">
       <div class="modal-header">
-        <h3>{{ mode === 'polish' ? '✨ AI 润色结果' : '🌐 AI 翻译结果' }}</h3>
-        <el-icon class="close-icon" @click="closeModal" size="20">
-         
-        </el-icon>
+        <h3>{{ featureConfig.title }}</h3>
+        <el-icon class="close-icon" @click="closeModal" size="20"><Close /> </el-icon>
       </div>
 
-      <div class="result-box">
+      <!-- 👇 文档问答：专属对话框 -->
+      <div v-if="mode === 'answerDoc'" class="qa-box">
+        <div class="chat-list" style="white-space: pre-wrap">
+          <div v-for="(item, i) in chatList" :key="i" class="chat-item">
+            <div class="user" v-if="item.role === 'user'">我：{{ item.content }}</div>
+            <div class="ai" v-else>AI：{{ item.content }}</div>
+          </div>
+          <div v-if="loading" class="loading">AI 思考中...</div>
+        </div>
+        <div class="chat-input">
+          <el-input v-model="question" placeholder="输入问题..." @keydown.enter="sendQuestion" />
+          <el-button type="primary" @click="sendQuestion" :disabled="loading">发送</el-button>
+        </div>
+      </div>
+
+      <!-- 👇 润色/翻译 普通结果展示 -->
+      <div v-else class="result-box">
         {{ aiResult || 'AI 正在处理中，请稍候...' }}
       </div>
 
+      <!-- 👇 按钮区域：按需显示 -->
       <div class="modal-buttons">
-        <el-button @click="closeModal" variant="text" text-color="#adb5bd">取消</el-button>
-        <el-button type="primary" @click="confirmReplace">替换原文</el-button>
+        <!-- 仅非问答功能显示：替换原文 -->
+        <el-button v-if="mode !== 'answerDoc' && mode !== 'translate'" type="primary" @click="confirmReplace">
+          替换原文
+        </el-button>
       </div>
     </div>
   </div>
 </template>
 
-<!-- AiModel.vue 适配深色编辑器版 -->
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
+//  直接导入 aiStream
+import { aiStream } from '../../utils/aiStream'
+//  导入AiModel配置文件
+import { AI_FEATURES } from '../../config/aiFeature'
+import type { AIFeatureConfig } from '../../type/ai';
+import { Close } from '@element-plus/icons-vue';
 
 const props = defineProps<{
   visible: boolean
-  mode: 'polish' | 'translate'
+  mode: 'polish' | 'translate'  | 'answerDoc'
   text: string
+  documentContext?: string
 }>()
 
 const emit = defineEmits<{
@@ -35,86 +58,105 @@ const emit = defineEmits<{
   'replace': [result: string]
 }>()
 
+//换为响应式，mode一变换便重新加载
+const featureConfig = computed<AIFeatureConfig>(() => {
+    const config =  AI_FEATURES[props.mode]
+    if(!config){
+       throw new Error(`未找到 mode: ${props.mode} 对应的配置`)
+    }
+    return config
+})
 const aiResult = ref('')
+const loading = ref(false)
 
+// 文档问答专用状态
+const chatList = ref<{ role: 'user' | 'ai'; content: string }[]>([])
+const question = ref('')
+
+// 监听弹窗打开
 watch(() => props.visible, (val) => {
   if (val) {
+    // 重置状态
     aiResult.value = ''
+    loading.value = false
+    chatList.value = []
+    question.value = ''
 
-    // 这里写你的AI流式请求逻辑
-    fetchStream()
+    //翻译功能，自动执行
+    if(props.mode === 'translate'){
+          handleCommonFeature("English")
+    }
+
+    // 非问答功能：自动执行
+    if (props.mode !== 'answerDoc' && props.mode !== 'translate') {
+      handleCommonFeature()
+    }
   }
 })
 
-//流式请求实现
-const fetchStream = async () => {
-    //发送get请求
-    const response = await fetch('http://localhost:3000/api/ai/polish', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        params:{
-           content:props.text
-        }
-      })
-    })
-
-    let reader = response.body?.getReader()
-    if (!reader) throw new Error('浏览器不支持流式读取')
-
-    const decoder = new TextDecoder('utf-8')
-    let buffer = ''
-    let isFlowDone = false
-
-    while (true) {
-      
-        if (isFlowDone) break
-        const { done, value } = await reader.read()
-        if (done) break
-        const chunk = decoder.decode(value, { stream: true })
-        buffer += chunk
-        const events = chunk.split('\n\n')
-        buffer = events.pop() || ''
-
-        //对events进行处理
-        for (const event of events) {
-          if (!event.trim()) continue
-          const lines = event.split('\n')
-          let dataJsonStr = ''
-          for (const line of lines) {
-            if (line.startsWith('data:')) {
-              dataJsonStr = line.slice(5).trim()
-              break
-            }
-          }
-          if (!dataJsonStr) continue
-            const data = JSON.parse(dataJsonStr)
-            if (data.status === 'done') {
-              isFlowDone = true // 🔥 设置结束标志
-              break
-            }
-            if(data.content){
-              aiResult.value += data.content
-            }
-          }
+// ==============================================
+// 👇 严格调用你封装的 aiStream，处理普通功能
+// ==============================================
+const handleCommonFeature = async (Lang?:string) => {
+  loading.value = true
+  await aiStream(
+    featureConfig.value.url,
+    {
+      content: props.text,
+      targetLang:Lang
+    },
+    (data) => {
+      if (data.status === 'loading' && data.content) {
+        aiResult.value += data.content
+      }
     }
+  )
+  loading.value = false
 }
 
+// ==============================================
+// 👇 严格调用你封装的 aiStream，处理文档问答
+// ==============================================
+const sendQuestion = async () => {
+  if (!question.value.trim()) return
+  const userMsg = question.value
+  chatList.value.push({ role: 'user', content: userMsg })
+  question.value = ''
+  loading.value = true
 
+  let aiAnswer = ''
+  await aiStream(
+    featureConfig.value.url,
+    {
+      question: userMsg,
+      docContent: props.documentContext || ''
+    },
+    (data) => {
+      if (data.status === 'loading' && data.content) {
+        aiAnswer += data.content
+        // 实时更新对话
+        chatList.value[chatList.value.length - 1] = { role: 'ai', content: aiAnswer }
+      }
+    }
+  )
 
+  loading.value = false
+}
+
+// 关闭弹窗
 const closeModal = () => {
   emit('update:visible', false)
 }
 
+// 替换原文（仅普通功能）
 const confirmReplace = () => {
   emit('replace', aiResult.value)
   closeModal()
 }
 </script>
+
 <style scoped>
-/* 遮罩层：半透明深色，和编辑器背景融合 */
+/* 你的原有样式，完全保留 + 新增问答极简样式 */
 .ai-modal-overlay {
   position: fixed;
   top: 0;
@@ -122,27 +164,21 @@ const confirmReplace = () => {
   right: 0;
   bottom: 0;
   background: rgba(0, 0, 0, 0.75);
-  /* 更深的遮罩，突出弹窗 */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 9999;
 }
 
-/* 弹窗容器：深色背景 + 白色文字，完全匹配编辑器 */
 .ai-modal-content {
-  width: 520px;
+  width: 550px;
   background: #1e1e1e;
-  /* 编辑器同款深色背景 */
   border: 1px solid #333;
   border-radius: 12px;
   padding: 20px 24px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
   color: #e9ecef;
-  /* 浅色文字，和编辑器一致 */
 }
 
-/* 弹窗头部：标题 + 关闭按钮 */
 .modal-header {
   display: flex;
   justify-content: space-between;
@@ -153,34 +189,64 @@ const confirmReplace = () => {
 .modal-header h3 {
   margin: 0;
   font-size: 18px;
-  font-weight: 600;
-  color: #ffffff
+  color: #fff;
 }
 
 .close-icon {
-  cursor: pointer;
   color: #adb5bd;
-  transition: color 0.2s;
+  cursor: pointer;
 }
 
-.close-icon:hover {
-  color: #ffffff;
-}
-
-/* 结果展示区：稍浅的深色背景，提升可读性 */
 .result-box {
   min-height: 140px;
   padding: 14px;
   background: #2d2d2d;
   border-radius: 6px;
-  margin: 12px 0;
   white-space: pre-wrap;
-  line-height: 1.6;
   color: #e9ecef;
-  border: 1px solid #3a3a3a;
+  margin: 12px 0;
 }
 
-/* 按钮组：适配深色主题 */
+/* 文档问答样式 */
+.qa-box {
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-list {
+  background: #2d2d2d;
+  padding: 12px;
+  border-radius: 6px;
+  min-height: 200px;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.chat-item {
+  margin: 8px 0;
+  line-height: 1.5;
+}
+
+.user {
+  color: #409eff;
+}
+
+.ai {
+  color: #e9ecef;
+}
+
+.loading {
+  color: #409eff;
+  margin-top: 8px;
+}
+
+.chat-input {
+  display: flex;
+  gap: 8px;
+}
+
 .modal-buttons {
   display: flex;
   justify-content: flex-end;
@@ -188,21 +254,8 @@ const confirmReplace = () => {
   margin-top: 16px;
 }
 
-/* 覆盖Element Plus按钮默认样式，适配深色 */
 :deep(.el-button--primary) {
-  background-color: #409eff;
+  background: #409eff;
   border-color: #409eff;
-}
-
-:deep(.el-button--default) {
-  color: #e9ecef;
-  border-color: #444;
-  background-color: transparent;
-}
-
-:deep(.el-button--default:hover) {
-  color: #ffffff;
-  border-color: #666;
-  background-color: #333;
 }
 </style>

@@ -1,6 +1,5 @@
 import { Request, Response } from 'express';
 
-
 // 统一状态枚举（规范代码）
 export const SSEStatus = {
     LOADING: 'loading',
