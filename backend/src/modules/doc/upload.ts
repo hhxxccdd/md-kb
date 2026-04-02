@@ -1,9 +1,9 @@
 import express, { Router, Request, Response } from 'express'
-import { throwBusinessError } from '../middleware/errorMiddleware'
+import { throwBusinessError } from '../../middleware/errorMiddleware'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
-import { success } from '../utils/response'
+import { success } from '../../utils/response'
 
 const router: Router = express.Router()
 

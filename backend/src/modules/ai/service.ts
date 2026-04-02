@@ -34,13 +34,15 @@ export async function handleAIStream(req: Request, res: Response, templateType: 
                 const translateTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["translate"]
                 prompt = translateTemplate(escapePromptContent(params.content), escapePromptContent(params.targetLang))
                 break;
-            case "answerDoc":
-                const answerDocTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["answerDoc"]
-                prompt = answerDocTemplate(escapePromptContent(params.docContent), escapePromptContent(params.question));
+            case "answerDocWithContext":
+                const answerDocTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["answerDocWithContext"]
+                prompt = answerDocTemplate(escapePromptContent(params.docContent),params.historyMessages, escapePromptContent(params.question));
                 break;
             default:
                 throwBusinessError("不支持的模板类型");
         }
+
+        
 
         //初始化SSE
         const { send, close } = initSSE(req, res)

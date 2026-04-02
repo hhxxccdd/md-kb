@@ -11,12 +11,61 @@ generator client {
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
+  relationMode = "prisma"
 }
 
+//文档表
 model Document{
-  id         Int      @id@default(autoincrement())  //主键,自增数字
+  id         Int      @id @default(autoincrement())  //主键,自增数字
   title      String                                 //文档标题(必填)
   content    String?  @db.Text                      //文档内容(可选,长文本存Markdown)
-  createdAt  DateTime @default(now())               //创建时间(自动生成时间)
-  updatedAt  DateTime @updatedAt                     //更新时间(自动更新)
+  created_at  DateTime @default(now())               //创建时间(自动生成时间)
+  updated_at  DateTime @updatedAt                     //更新时间(自动更新)
 }
+
+
+//用户表
+model User{
+  id            Int     @id @default(autoincrement())
+  username      String
+  email         String
+  password_hash String
+  created_at    DateTime @default(now())
+  last_login_at DateTime
+  //保留关联,方便连表查询
+  sessions      ChatSession[]
+}
+
+//聊天会话表
+model ChatSession{
+   id              Int     @id @default(autoincrement())
+   session_uuid    String  @unique
+   user_id         Int
+   doc_id          Int
+   created_at      DateTime @default(now())
+   //保留关联
+   user            User     @relation(fields: [user_id], references: [id])      
+   message         ChatMessage[]
+}
+
+
+//聊天信息表
+model ChatMessage{
+     id           Int     @id  @default(autoincrement())
+     session_id   String 
+     role         String
+     content      String
+     created_at   DateTime @default(now())
+     //保留关联
+     session      ChatSession  @relation(fields: [session_id],references: [session_uuid])
+}
+
+
+
+
+
+
+
+
+
+

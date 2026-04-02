@@ -86,11 +86,12 @@ const debounce = (fn: Function, delay: number) => {
 const parseMarkdown = (text: string) => {
     if (!text) {
         title.value = ''
-        emit('update:title', '')
+        emit('update:title', '未命名文档')
         return
     }
     const firstLine = text.split('\n')[0]
     title.value = firstLine?.startsWith('# ') ? firstLine.slice(2) : firstLine || '未命名文档'
+    title.value = title.value === "" ? '未命名文档' : title.value
     emit('update:title', title.value)
 }
 
@@ -106,7 +107,7 @@ const saveDoc = async () => {
             })
         } else {
             const res = await request.post('/doc', {
-                title: title.value || '未命名文档',
+                title: title.value,
                 content: editorContent.value
             })
             router.push(`/edito/${res.data.id}`)

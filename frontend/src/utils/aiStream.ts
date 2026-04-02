@@ -4,8 +4,14 @@
  * @param params 请求参数 { content, context? }
  * @param onChunk 流式回调：接收每一段数据
  */
+
+interface chatList {
+     role:'user'|'ai'
+     content:string
+}
+
 export const aiStream = async (url: string,
-    params: { content?: string; docContent?: string; targetLang?: string; question?: string },
+    params: { content?: string; docContent?: string; targetLang?: string; question?: string,historyMessages?:chatList[] },
     onChunk: (data: { status: 'loading' | 'done' | 'error'; content: string }) => void  //回调函数
 ) => {
     try {

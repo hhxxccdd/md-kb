@@ -3,12 +3,14 @@
     <div class="ai-modal-content">
       <div class="modal-header">
         <h3>{{ featureConfig.title }}</h3>
-        <el-icon class="close-icon" @click="closeModal" size="20"><Close /> </el-icon>
+        <el-icon class="close-icon" @click="closeModal" size="20">
+          <Close />
+        </el-icon>
       </div>
 
       <!-- 👇 文档问答：专属对话框 -->
       <div v-if="mode === 'answerDoc'" class="qa-box">
-        <div class="chat-list" style="white-space: pre-wrap">
+        <div class="chat-list" style="white-space: pre-wrap" ref="chatListRef">
           <div v-for="(item, i) in chatList" :key="i" class="chat-item">
             <div class="user" v-if="item.role === 'user'">我：{{ item.content }}</div>
             <div class="ai" v-else>AI：{{ item.content }}</div>
@@ -45,10 +47,17 @@ import { aiStream } from '../../utils/aiStream'
 import { AI_FEATURES } from '../../config/aiFeature'
 import type { AIFeatureConfig } from '../../type/ai';
 import { Close } from '@element-plus/icons-vue';
+//导入支持上下文请求
+import { getSessionId, getContext, saveMessage } from '../../api'
+import type { ChatMessage } from '../../type/chat';
+
+//模拟user_id 和 doc_id
+const userId = ref<number>(1)
+const docId = ref<number>(1)
 
 const props = defineProps<{
   visible: boolean
-  mode: 'polish' | 'translate'  | 'answerDoc'
+  mode: 'polish' | 'translate' | 'answerDoc'
   text: string
   documentContext?: string
 }>()
@@ -60,11 +69,11 @@ const emit = defineEmits<{
 
 //换为响应式，mode一变换便重新加载
 const featureConfig = computed<AIFeatureConfig>(() => {
-    const config =  AI_FEATURES[props.mode]
-    if(!config){
-       throw new Error(`未找到 mode: ${props.mode} 对应的配置`)
-    }
-    return config
+  const config = AI_FEATURES[props.mode]
+  if (!config) {
+    throw new Error(`未找到 mode: ${props.mode} 对应的配置`)
+  }
+  return config
 })
 const aiResult = ref('')
 const loading = ref(false)
@@ -72,24 +81,34 @@ const loading = ref(false)
 // 文档问答专用状态
 const chatList = ref<{ role: 'user' | 'ai'; content: string }[]>([])
 const question = ref('')
+const chatListRef = ref<HTMLDivElement | null>(null)
+const session_id = ref<string>()
 
 // 监听弹窗打开
-watch(() => props.visible, (val) => {
+watch(() => props.visible, async (val) => {
   if (val) {
     // 重置状态
     aiResult.value = ''
     loading.value = false
     chatList.value = []
     question.value = ''
-
     //翻译功能，自动执行
-    if(props.mode === 'translate'){
-          handleCommonFeature("English")
+    if (props.mode === 'translate') {
+      handleCommonFeature("English")
     }
-
     // 非问答功能：自动执行
-    if (props.mode !== 'answerDoc' && props.mode !== 'translate') {
+    if (props.mode === 'polish') {
       handleCommonFeature()
+    }
+    //问答功能
+    if (props.mode === 'answerDoc') {
+      //获取上下文id
+      const params = { user_id: userId.value, doc_id: docId.value }
+      const sessionId = await getSessionId(params)
+      session_id.value = sessionId.data
+      //获取上下文
+      const list: ChatMessage[] = (await getContext(session_id.value)).data
+      chatList.value = list
     }
   }
 })
@@ -97,13 +116,13 @@ watch(() => props.visible, (val) => {
 // ==============================================
 // 👇 严格调用你封装的 aiStream，处理普通功能
 // ==============================================
-const handleCommonFeature = async (Lang?:string) => {
+const handleCommonFeature = async (Lang?: string) => {
   loading.value = true
   await aiStream(
     featureConfig.value.url,
     {
       content: props.text,
-      targetLang:Lang
+      targetLang: Lang
     },
     (data) => {
       if (data.status === 'loading' && data.content) {
@@ -121,15 +140,27 @@ const sendQuestion = async () => {
   if (!question.value.trim()) return
   const userMsg = question.value
   chatList.value.push({ role: 'user', content: userMsg })
+  chatList.value.push({ role: 'ai', content: 'AI思考中' })  //用来做占位符
   question.value = ''
-  loading.value = true
 
+  let message = {
+    session_id: session_id.value as string,
+    role: 'user',
+    content: userMsg
+  }
+
+  //保存AI聊天记录
+  saveMessage(message)
+
+  
   let aiAnswer = ''
   await aiStream(
     featureConfig.value.url,
     {
       question: userMsg,
-      docContent: props.documentContext || ''
+      docContent: props.documentContext || '',
+      historyMessages:chatList.value
+
     },
     (data) => {
       if (data.status === 'loading' && data.content) {
@@ -140,7 +171,25 @@ const sendQuestion = async () => {
     }
   )
 
-  loading.value = false
+  message = {
+    session_id: session_id.value as string,
+    role: 'ai',
+    content: aiAnswer
+  }
+
+  saveMessage(message)
+
+
+  scrollToBottom()
+
+}
+
+
+//发送消息自动跳转到尾部
+const scrollToBottom = () => {
+  const box = chatListRef.value
+  if (!box) return
+  box.scrollTop = box.scrollHeight
 }
 
 // 关闭弹窗

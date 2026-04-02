@@ -12,7 +12,7 @@ aiRouter.post('/polish', aiRateLimiter,(req,res) => handleAIStream(req,res,"poli
 aiRouter.post("/translate", aiRateLimiter, (req, res) => handleAIStream(req, res, "translate"));
 
 // 3. 文档问答
-aiRouter.post("/answer-doc",  aiRateLimiter,(req, res) => handleAIStream(req, res, "answerDoc"));
+aiRouter.post("/answer-doc",  aiRateLimiter,(req, res) => handleAIStream(req, res, "answerDocWithContext"));
 
 
 export default aiRouter

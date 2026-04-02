@@ -1,5 +1,5 @@
 import { Response } from "express";
-import { ApiResponse, ApiCode } from '../types/response'
+import { ApiResponse, ApiCode } from './types/response'
 
 //统一成功响应
 export const success = (
@@ -11,3 +11,12 @@ export const success = (
     const response: ApiResponse = { code: ApiCode.Success, data, msg }
     return res.status(statusCode).json(response)
 }
+
+// 统一失败响应
+export const error = (
+    res: Response,
+    msg: string = '操作失败',
+    statusCode = 500) => {
+    const response:ApiResponse = {code:ApiCode.Error,data:null,msg}
+    return res.status(statusCode).json(response)
+};

@@ -1,8 +1,8 @@
 import express from 'express'
-import prisma from '../utils/prisma'
-import { success } from '../utils/response'
-import { asyncHandler } from '../utils/asyncHandler'
-import { throwBusinessError } from '../middleware/errorMiddleware'
+import prisma from '../../utils/prisma'
+import { success } from '../../utils/response'
+import { asyncHandler } from '../../utils/asyncHandler'
+import { throwBusinessError } from '../../middleware/errorMiddleware'
 
 const router = express.Router()
 
@@ -18,7 +18,7 @@ const validateId = (id: string): number => {
 //获取文档的列表
 router.get('/', asyncHandler(async (req, res) => {
     const list = await prisma.document.findMany({
-        orderBy: { updatedAt: 'desc' }
+        orderBy: { updated_at: 'desc' }
     })
     success(res, list)
 }))

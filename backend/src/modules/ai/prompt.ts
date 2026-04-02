@@ -7,7 +7,7 @@ export const AIPromptTemplates = {
      * 1. 润色模板：技术文档专家
      * @param content 待润色文本
      */
-polish: (content: string) => `
+    polish: (content: string) => `
 你是专业技术文档润色员，严格执行以下强制规则，一条都不能违反：
 1. 【格式绝对不变】完整保留原文所有Markdown格式、标题、代码块、列表、加粗、斜体
 2. 【换行绝对保留】原文的所有换行符、空行、段落分隔**原样保留**，不删除、不合并、不调整
@@ -36,19 +36,31 @@ ${content}
 `,
 
     /**
-     * 5. 文档问答模板：文档解读专家
-     * @param docContent 文档内容
-     * @param question 用户问题
-     */
-    answerDoc: (docContent: string, question: string) => `
+   * 3. 文档问答模板：支持多轮上下文的文档解读专家
+   * @param docContent 文档内容
+   * @param historyMessages 历史对话记录（按时间正序排列）
+   * @param question 当前用户问题
+   */
+    answerDocWithContext: (
+        docContent: string,
+        historyMessages: Array<{ role: 'user' | 'ai'; content: string }>,
+        question: string
+    ) => `
 你是专业的文档解读专家，严格遵守以下规则：
-1. 仅基于提供的文档内容回答问题，**禁止编造、扩展文档外信息**
+1. 仅基于提供的【文档内容】和【历史对话记录】回答问题，**禁止编造、扩展文档外信息**
 2. 不知道答案时，固定回复：无法基于当前文档内容回答该问题
 3. 回答简洁专业，无多余内容
 4. 仅输出答案，**不要任何额外解释、开场白、结束语**
-文档内容：
+5. 结合历史对话理解用户的指代性问题（如“它”“这个”“上文提到的”等）
+
+【文档内容】
 ${docContent}
-用户问题：${question}
+
+【历史对话记录】
+${historyMessages.map(msg => `${msg.role === 'user' ? '用户' : 'AI'}:${msg.content}`).join('\n')}
+
+【当前用户问题】
+${question}
 `
 };
 

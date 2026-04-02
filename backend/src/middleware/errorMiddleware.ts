@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from "express";
 import { Prisma } from "@prisma/client";
-import { ApiResponse, ApiCode } from "../types/response";
+import { ApiResponse, ApiCode } from "../utils/types/response";
 
 //全局异常捕获中间件
 export const globalErrorHandler = (err: Error, req: Request, res: Response, next: NextFunction) => {
