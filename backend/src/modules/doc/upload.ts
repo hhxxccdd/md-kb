@@ -1,11 +1,14 @@
 import express, { Router, Request, Response } from 'express'
-import { throwBusinessError } from '../../middleware/errorMiddleware'
+import { throwBusinessError } from '../../utils/throwError'
 import multer from 'multer'
 import path from 'path'
 import fs from 'fs'
 import { success } from '../../utils/response'
+import { authMiddleware } from '../user/middleware'
 
 const router: Router = express.Router()
+
+router.use(authMiddleware)
 
 //配置存储：按照日期文件夹+唯一命名
 const storage = multer.diskStorage({

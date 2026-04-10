@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import { throwBusinessError } from "../../middleware/errorMiddleware";
+import { throwBusinessError } from '../../utils/throwError'
 import { AIPromptTemplates, escapePromptContent } from "./prompt";
 import { initSSE, SSEStatus } from "./sse";
 import { ChatParams } from "./type";
@@ -14,7 +14,7 @@ export type PromptTemplateType = keyof typeof AIPromptTemplates
 // 封装AI通用流式请求方法
 // @param req Express请求对象
 // @param res Express响应对象
-// @param remplateType 模板类型:polish/translate/generateToc/optimizeCode/answerDoc
+// @param remplateType 模板类型:polish/translate/answerDoc
 export async function handleAIStream(req: Request, res: Response, templateType: PromptTemplateType) {
     try {
         const params = req.body.params
@@ -41,8 +41,6 @@ export async function handleAIStream(req: Request, res: Response, templateType: 
             default:
                 throwBusinessError("不支持的模板类型");
         }
-
-        
 
         //初始化SSE
         const { send, close } = initSSE(req, res)

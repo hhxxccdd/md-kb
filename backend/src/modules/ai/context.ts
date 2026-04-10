@@ -3,12 +3,15 @@ import express from "express";
 import { PrismaClient } from "@prisma/client";
 import { v4 as uuidv4 } from 'uuid'
 import { success } from "../../utils/response";
+import { authMiddleware } from "../user/middleware";
 
 const aiContextRouter = express.Router()
 const prisma = new PrismaClient()
 
 //配置上下文截断，上下文记忆只选最近10条
 const MAX_CONTEXT_MESSAGES = 10
+
+aiContextRouter.use(authMiddleware)
 
 
 //1.通过user_id和doc_id获取session_id

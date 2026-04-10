@@ -1,10 +1,12 @@
-export interface ApiResponse{
-      code:number,
-      data?:unknown,
-      msg?:string
+export interface ApiResponse {
+    code: number,
+    data?: unknown,
+    msg?: string
 }
 
 export const ApiCode = {
-    Success: 1,
-    Error:-1
-} as const
+    Success: 200,
+    Error: 500,
+    Unauthorized :401,  // 未认证
+    Forbidden : 403,     // 无权限
+} 

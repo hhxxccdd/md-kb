@@ -38,13 +38,13 @@
         <div class="editor-container">
             <!-- 在模板中使用组件，用v-model绑定内容 -->
             <MyMdEditor ref="myMdEditorRef" :id="id" @update:title="title = $event" @update:status="status = $event"
-                theme="dark" @update:editor-content="editorCotent = $event">
+                theme="light" @update:editor-content="editorContent = $event">
             </MyMdEditor>
         </div>
         <div>
             <!-- AI弹窗 -->
             <AiModel v-model:visible="modalVisible" :mode="aiMode" :text="selectedText" @replace="replace"
-                :documentContext="editorCotent" />
+                :documentContext="editorContent" />
         </div>
     </div>
 
@@ -60,7 +60,7 @@ import AiModel from '../component/ai/AiModel.vue';
 const id = 1
 const title = ref<string>('')
 const status = ref<string>('')
-const editorCotent = ref<string>('')
+const editorContent = ref<string>('')
 
 const state = reactive({
     circleUrl:
@@ -105,13 +105,13 @@ const replace = (val: string) => {
  */
 const exportMarkdown = () => {
     // 1. 校验空内容
-    if (!editorCotent.value.trim()) {
+    if (!editorContent.value.trim()) {
         alert('请输入内容后再导出！')
         return
     }
 
     // 2. 创建文件对象（指定编码和MIME类型，防止乱码）
-    const blob = new Blob([editorCotent.value], {
+    const blob = new Blob([editorContent.value], {
         type: 'text/markdown;charset=utf-8'
     })
 

@@ -7,7 +7,6 @@
             <ExportPDF :modelValue="editorContent" />
         </template>
     </MdEditor>
-
 </template>
 
 

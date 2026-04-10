@@ -2,9 +2,12 @@ import express from 'express'
 import prisma from '../../utils/prisma'
 import { success } from '../../utils/response'
 import { asyncHandler } from '../../utils/asyncHandler'
-import { throwBusinessError } from '../../middleware/errorMiddleware'
+import { throwBusinessError } from '../../utils/throwError'
+import { authMiddleware } from '../user/middleware'
 
 const router = express.Router()
+
+router.use(authMiddleware)
 
 //验证Id是否有效
 const validateId = (id: string): number => {

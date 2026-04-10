@@ -1,9 +1,11 @@
 import { Router } from "express";
 import { handleAIStream } from "./service";
 import aiRateLimiter from "../../middleware/rateLimit";
+import { authMiddleware } from "../user/middleware";
 
 const aiRouter = Router()
 
+aiRouter.use(authMiddleware)
 
 // 1. Ai润色
 aiRouter.post('/polish', aiRateLimiter,(req,res) => handleAIStream(req,res,"polish"))

@@ -1,7 +1,7 @@
 import axios from "axios";
 import { AI_CONFIG } from "./config";
 import { ChatParams, AIError } from "./type";
-import { throwAIError } from "../../middleware/errorMiddleware";
+import { throwAIError } from "../../utils/throwError";
 
 const aiClient = axios.create({
     baseURL: AI_CONFIG.API_URL,

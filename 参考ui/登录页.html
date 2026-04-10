@@ -1,59 +1,428 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <title>AI Markdown 协作知识库 - 登录</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        body { background: linear-gradient(135deg, #f5f7fa 0%, #e4eaf5 100%); }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>登录 - AI 增强知识库</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+
+    .login-page {
+      width: 100vw;
+      height: 100vh;
+      background: linear-gradient(135deg, #f5f7fa 0%, #ffffff 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 120px;
+      padding: 0 40px;
+    }
+
+    /* 左侧品牌区 */
+    .brand-section {
+      max-width: 500px;
+    }
+    .brand-title {
+      font-size: 42px;
+      font-weight: 700;
+      color: #1d2129;
+      margin: 0 0 16px 0;
+      line-height: 1.2;
+    }
+    .brand-desc {
+      font-size: 18px;
+      color: #4e5969;
+      margin: 0 0 40px 0;
+      line-height: 1.5;
+    }
+    .brand-feature {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feature-item {
+      font-size: 16px;
+      color: #1d2129;
+      line-height: 1.5;
+    }
+
+    /* 右侧表单卡片 */
+    .form-card {
+      width: 400px;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 32px;
+    }
+
+    /* 表单切换tab */
+    .form-tab {
+      display: flex;
+      border-bottom: 1px solid #e5e6eb;
+      margin-bottom: 32px;
+    }
+    .tab-item {
+      flex: 1;
+      text-align: center;
+      padding-bottom: 12px;
+      font-size: 16px;
+      font-weight: 500;
+      color: #86909c;
+      cursor: pointer;
+      transition: all 0.2s;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-item.active {
+      color: #1677ff;
+      border-color: #1677ff;
+    }
+    .tab-item:hover {
+      color: #40a9ff;
+    }
+
+    /* 登录方式切换 */
+    .login-type-switch {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .login-type-item {
+      font-size: 14px;
+      color: #4e5969;
+      cursor: pointer;
+      padding-bottom: 4px;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+    }
+    .login-type-item.active {
+      color: #1677ff;
+      border-color: #1677ff;
+    }
+
+    /* 表单内容 */
+    .form-content {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .form-item {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .form-item-row {
+      display: flex;
+      gap: 12px;
+    }
+    .form-item-row .form-input {
+      flex: 1;
+    }
+    .form-label {
+      font-size: 14px;
+      font-weight: 500;
+      color: #1d2129;
+    }
+    .form-input {
+      width: 100%;
+      height: 44px;
+      padding: 0 12px;
+      border: 1px solid #e5e6eb;
+      border-radius: 6px;
+      font-size: 14px;
+      color: #1d2129;
+      transition: all 0.2s;
+      background: #ffffff;
+    }
+    .form-input:focus {
+      outline: none;
+      border-color: #1677ff;
+      box-shadow: 0 0 0 2px rgba(22, 119, 255, 0.1);
+    }
+    .form-input::placeholder {
+      color: #86909c;
+    }
+
+    /* 验证码按钮 */
+    .btn-code {
+      height: 44px;
+      padding: 0 16px;
+      background: #f5f7fa;
+      color: #1677ff;
+      border: 1px solid #1677ff;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-code:hover:not(:disabled) {
+      background: #e6f7ff;
+    }
+    .btn-code:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      background: #f5f7fa;
+      color: #86909c;
+      border-color: #e5e6eb;
+    }
+
+    .form-tip {
+      font-size: 12px;
+      color: #ff4d4f;
+      line-height: 1;
+      margin-top: -8px;
+    }
+
+    /* 按钮 - 和编辑页顶部按钮完全一致 */
+    .btn-primary {
+      width: 100%;
+      height: 44px;
+      background: #1677ff;
+      color: #ffffff;
+      border: none;
+      border-radius: 6px;
+      font-size: 15px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+      margin-top: 8px;
+    }
+    .btn-primary:hover:not(:disabled) {
+      background: #40a9ff;
+    }
+    .btn-primary:active:not(:disabled) {
+      background: #0958d9;
+    }
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    /* 响应式适配 */
+    @media (max-width: 1000px) {
+      .login-page {
+        flex-direction: column;
+        gap: 40px;
+        padding: 40px 20px;
+      }
+      .brand-section {
+        text-align: center;
+      }
+      .brand-title {
+        font-size: 32px;
+      }
+      .form-card {
+        width: 100%;
+        max-width: 400px;
+      }
+    }
+  </style>
 </head>
-<body class="min-h-screen flex items-center justify-center px-4">
-    <!-- 登录卡片 -->
-    <div class="w-full max-w-md bg-white rounded-2xl shadow-xl p-8">
-        <!-- 品牌标题 -->
-        <div class="text-center mb-8">
-            <h1 class="text-[#165DFF] text-3xl font-bold flex items-center justify-center gap-2">
-                <i class="fa-solid fa-book-open-reader"></i>
-                AI Markdown 知识库
-            </h1>
-            <p class="text-gray-500 mt-2">多人实时协作 · AI 增强编辑</p>
+<body>
+  <div class="login-page">
+    <!-- 左侧品牌区 -->
+    <div class="brand-section">
+      <h1 class="brand-title">AI 增强知识库</h1>
+      <p class="brand-desc">Markdown 编辑 · AI 智能问答 · 团队协作</p>
+      <div class="brand-feature">
+        <div class="feature-item">✦ 原生 Markdown 编辑体验</div>
+        <div class="feature-item">✦ 带上下文记忆的文档智能问答</div>
+        <div class="feature-item">✦ 私有/公开文档权限管理</div>
+      </div>
+    </div>
+
+    <!-- 右侧表单区 -->
+    <div class="form-card">
+      <div class="form-tab">
+        <div class="tab-item active" id="loginTab" onclick="switchTab('login')">登录</div>
+        <div class="tab-item" id="registerTab" onclick="switchTab('register')">注册</div>
+      </div>
+
+      <!-- 登录表单 -->
+      <div id="loginContainer">
+        <div class="login-type-switch">
+          <div class="login-type-item active" id="passwordLoginType" onclick="switchLoginType('password')">密码登录</div>
+          <div class="login-type-item" id="codeLoginType" onclick="switchLoginType('code')">验证码登录</div>
         </div>
 
-        <!-- 表单切换 -->
-        <div class="flex border rounded-lg mb-6">
-            <button class="w-1/2 py-2 bg-[#165DFF] text-white rounded-l-lg">登录</button>
-            <button class="w-1/2 py-2 text-gray-600">注册</button>
-        </div>
-
-        <!-- 登录表单 -->
-        <form class="space-y-5">
-            <div>
-                <label class="block text-gray-700 mb-1">邮箱</label>
-                <input type="email" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF] focus:border-transparent" placeholder="请输入邮箱">
-            </div>
-            <div>
-                <label class="block text-gray-700 mb-1">密码</label>
-                <input type="password" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#165DFF] focus:border-transparent" placeholder="请输入密码">
-            </div>
-
-            <!-- 操作栏 -->
-            <div class="flex justify-between items-center">
-                <label class="flex items-center gap-2 text-gray-600">
-                    <input type="checkbox" class="rounded">记住我
-                </label>
-                <a href="#" class="text-[#165DFF] text-sm">忘记密码？</a>
-            </div>
-
-            <!-- 登录按钮 -->
-            <button type="button" class="w-full py-3 bg-[#165DFF] text-white rounded-lg font-medium hover:bg-[#0E42D2] transition-colors">
-                登录
-            </button>
+        <!-- 密码登录 -->
+        <form class="form-content" id="passwordLoginForm" onsubmit="handlePasswordLogin(event)">
+          <div class="form-item">
+            <label class="form-label">用户名</label>
+            <input type="text" class="form-input" placeholder="请输入用户名" required />
+          </div>
+          <div class="form-item">
+            <label class="form-label">密码</label>
+            <input type="password" class="form-input" placeholder="请输入密码" required />
+          </div>
+          <div class="form-tip" id="passwordLoginError" style="display: none;">登录失败，请检查用户名和密码</div>
+          <button type="submit" class="btn-primary" id="passwordLoginBtn">登录</button>
         </form>
 
-        <!-- 底部版权 -->
-        <p class="text-center text-gray-400 text-sm mt-8">© 2026 AI Markdown 协作知识库</p>
+        <!-- 验证码登录 -->
+        <form class="form-content" id="codeLoginForm" style="display: none;" onsubmit="handleCodeLogin(event)">
+          <div class="form-item">
+            <label class="form-label">邮箱</label>
+            <input type="email" class="form-input" id="codeLoginEmail" placeholder="请输入邮箱" required />
+          </div>
+          <div class="form-item">
+            <label class="form-label">验证码</label>
+            <div class="form-item-row">
+              <input type="text" class="form-input" id="codeLoginCode" placeholder="请输入验证码" required />
+              <button type="button" class="btn-code" id="sendCodeBtn" onclick="sendCode()">获取验证码</button>
+            </div>
+          </div>
+          <div class="form-tip" id="codeLoginError" style="display: none;">登录失败，请检查邮箱和验证码</div>
+          <button type="submit" class="btn-primary" id="codeLoginBtn">登录</button>
+        </form>
+      </div>
+
+      <!-- 注册表单 -->
+      <form class="form-content" id="registerForm" style="display: none;" onsubmit="handleRegister(event)">
+        <div class="form-item">
+          <label class="form-label">用户名</label>
+          <input type="text" class="form-input" placeholder="请设置用户名" required />
+        </div>
+        <div class="form-item">
+          <label class="form-label">邮箱</label>
+          <input type="email" class="form-input" placeholder="请输入邮箱" required />
+        </div>
+        <div class="form-item">
+          <label class="form-label">密码</label>
+          <input type="password" class="form-input" placeholder="请设置密码" required />
+        </div>
+        <div class="form-tip" id="registerError" style="display: none;">注册失败，请检查信息</div>
+        <button type="submit" class="btn-primary" id="registerBtn">注册</button>
+      </form>
     </div>
+  </div>
+
+  <script>
+    // 切换登录/注册
+    function switchTab(tab) {
+      const loginTab = document.getElementById('loginTab');
+      const registerTab = document.getElementById('registerTab');
+      const loginContainer = document.getElementById('loginContainer');
+      const registerForm = document.getElementById('registerForm');
+
+      if (tab === 'login') {
+        loginTab.classList.add('active');
+        registerTab.classList.remove('active');
+        loginContainer.style.display = 'block';
+        registerForm.style.display = 'none';
+      } else {
+        registerTab.classList.add('active');
+        loginTab.classList.remove('active');
+        registerForm.style.display = 'flex';
+        loginContainer.style.display = 'none';
+      }
+    }
+
+    // 切换密码/验证码登录
+    function switchLoginType(type) {
+      const passwordLoginType = document.getElementById('passwordLoginType');
+      const codeLoginType = document.getElementById('codeLoginType');
+      const passwordLoginForm = document.getElementById('passwordLoginForm');
+      const codeLoginForm = document.getElementById('codeLoginForm');
+
+      if (type === 'password') {
+        passwordLoginType.classList.add('active');
+        codeLoginType.classList.remove('active');
+        passwordLoginForm.style.display = 'flex';
+        codeLoginForm.style.display = 'none';
+      } else {
+        codeLoginType.classList.add('active');
+        passwordLoginType.classList.remove('active');
+        codeLoginForm.style.display = 'flex';
+        passwordLoginForm.style.display = 'none';
+      }
+    }
+
+    // 发送验证码
+    let countdown = 0;
+    function sendCode() {
+      const email = document.getElementById('codeLoginEmail').value;
+      if (!email) {
+        alert('请先输入邮箱');
+        return;
+      }
+
+      const sendCodeBtn = document.getElementById('sendCodeBtn');
+      countdown = 60;
+      sendCodeBtn.disabled = true;
+      sendCodeBtn.textContent = `${countdown}s`;
+
+      const timer = setInterval(() => {
+        countdown--;
+        if (countdown <= 0) {
+          clearInterval(timer);
+          sendCodeBtn.disabled = false;
+          sendCodeBtn.textContent = '获取验证码';
+        } else {
+          sendCodeBtn.textContent = `${countdown}s`;
+        }
+      }, 1000);
+
+      alert('验证码已发送到您的邮箱（模拟）');
+    }
+
+    // 模拟密码登录
+    function handlePasswordLogin(e) {
+      e.preventDefault();
+      const loginBtn = document.getElementById('passwordLoginBtn');
+      const loginError = document.getElementById('passwordLoginError');
+      
+      loginBtn.disabled = true;
+      loginBtn.textContent = '登录中...';
+      loginError.style.display = 'none';
+
+      setTimeout(() => {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '登录';
+        alert('登录成功！跳转到首页');
+      }, 1000);
+    }
+
+    // 模拟验证码登录
+    function handleCodeLogin(e) {
+      e.preventDefault();
+      const loginBtn = document.getElementById('codeLoginBtn');
+      const loginError = document.getElementById('codeLoginError');
+      
+      loginBtn.disabled = true;
+      loginBtn.textContent = '登录中...';
+      loginError.style.display = 'none';
+
+      setTimeout(() => {
+        loginBtn.disabled = false;
+        loginBtn.textContent = '登录';
+        alert('登录成功！跳转到首页');
+      }, 1000);
+    }
+
+    // 模拟注册
+    function handleRegister(e) {
+      e.preventDefault();
+      const registerBtn = document.getElementById('registerBtn');
+      const registerError = document.getElementById('registerError');
+      
+      registerBtn.disabled = true;
+      registerBtn.textContent = '注册中...';
+      registerError.style.display = 'none';
+
+      setTimeout(() => {
+        registerBtn.disabled = false;
+        registerBtn.textContent = '注册';
+        alert('注册成功！请登录');
+        switchTab('login');
+      }, 1000);
+    }
+  </script>
 </body>
 </html>

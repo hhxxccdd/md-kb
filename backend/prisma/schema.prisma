@@ -27,9 +27,12 @@ model Document{
 //用户表
 model User{
   id            Int     @id @default(autoincrement())
-  username      String
+  username      String  @unique 
+  avatar        String?
   email         String
   password_hash String
+  //新增的Refresh Token字段，可选（刚注册的用户还没登录，没有这个值）
+  refreshToken String?
   created_at    DateTime @default(now())
   last_login_at DateTime
   //保留关联,方便连表查询

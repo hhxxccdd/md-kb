@@ -143,6 +143,8 @@ const sendQuestion = async () => {
   chatList.value.push({ role: 'ai', content: 'AI思考中' })  //用来做占位符
   question.value = ''
 
+
+
   let message = {
     session_id: session_id.value as string,
     role: 'user',
@@ -152,14 +154,14 @@ const sendQuestion = async () => {
   //保存AI聊天记录
   saveMessage(message)
 
-  
+
   let aiAnswer = ''
   await aiStream(
     featureConfig.value.url,
     {
       question: userMsg,
       docContent: props.documentContext || '',
-      historyMessages:chatList.value
+      historyMessages: chatList.value
 
     },
     (data) => {
@@ -167,10 +169,11 @@ const sendQuestion = async () => {
         aiAnswer += data.content
         // 实时更新对话
         chatList.value[chatList.value.length - 1] = { role: 'ai', content: aiAnswer }
+        //实时跳转
+        scrollToBottom()
       }
     }
   )
-
   message = {
     session_id: session_id.value as string,
     role: 'ai',
@@ -178,10 +181,6 @@ const sendQuestion = async () => {
   }
 
   saveMessage(message)
-
-
-  scrollToBottom()
-
 }
 
 

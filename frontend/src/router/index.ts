@@ -13,6 +13,11 @@ const routes:Array<RouteRecordRaw> = [
         path:'/edit',
         name:'edit',
         component:() => import('../views/EditorPage.vue')
+    },
+    {
+        path:'/login',
+        name:'login',
+        component:() => import('../views/Login.vue')
     }
 ]
 
