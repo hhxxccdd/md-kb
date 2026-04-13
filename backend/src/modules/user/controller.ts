@@ -36,7 +36,7 @@ userRouter.post('/register', asyncHandler(async (req: Request, res: Response) =>
     const tokens = await generateTokenPair(user.id)
 
     const data = {
-        user: { id: user.id, username: user.username, email: user.email },
+        user: { id: user.id, username: user.username, email: user.email, avatar: user.avatar },
         ...tokens
     }
 
@@ -67,7 +67,7 @@ userRouter.post('/login', asyncHandler(async (req, res) => {
     const tokens = await generateTokenPair(user.id)
 
     const data = {
-        user: { id: user.id, username: user.username, email: user.email },
+        user: { id: user.id, username: user.username, email: user.email, avatar: user.avatar },
         ...tokens
     }
 

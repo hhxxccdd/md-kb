@@ -36,7 +36,7 @@
                         <label class="form-label">密码</label>
                         <input type="text" v-model="password" class="form-input" placeholder="密码" required>
                     </div>
-                    <button type="submit" class="btn-primary">登录</button>
+                    <button type="button" class="btn-primary" @click="login">登录</button>  
                 </form>
 
                 <form class="form-content" v-show="loginMode === 'verifycode'">
@@ -54,7 +54,7 @@
                         </div>
                     </div>
 
-                    <button type="submit" class="btn-primary">登录</button>
+                    <button type="button" class="btn-primary" >登录</button>
                 </form>
 
             </div>
@@ -88,7 +88,8 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { registerUser, loginUser } from '../api/user'
+import { registerUser } from '../api/user'
+import { useAuthStore } from '../stores/user'
 import { ElMessage } from 'element-plus'
 
 //切换登录，注册
@@ -141,10 +142,10 @@ const register = async () => {
     }
 }
 
-
-
-
-
+//登录
+const login = async () => {
+    await useAuthStore().login(username.value, password.value)  
+}
 
 
 

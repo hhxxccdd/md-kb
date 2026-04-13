@@ -67,7 +67,7 @@ request.interceptors.response.use(
             } catch (err) {
                 localStorage.clear()
                 ElMessage.error('登录已过期')
-                router.push('/login')
+                router.push('/login') 
                 return Promise.reject(err)
             }
         }

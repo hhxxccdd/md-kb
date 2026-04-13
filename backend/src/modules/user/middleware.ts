@@ -12,7 +12,7 @@ export const authMiddleware = asyncHandler(async (req: Request, res: Response, n
     const refreshToken = req.headers['x-refresh-token'] as string;
 
     if (!accessToken) {
-        throwAuthError('请先登录')
+        throwAuthError('请先登录',201)
         return
     }
 
@@ -23,8 +23,7 @@ export const authMiddleware = asyncHandler(async (req: Request, res: Response, n
     } catch (e: any) {
 
         if (!refreshToken) {
-            throwAuthError('登录已过期，请重新登录', 401);
-
+            throwAuthError('登录已过期，请重新登录', 201);
         }
         const tokens  = await refreshAccessToken(refreshToken) as TokenPair;
 

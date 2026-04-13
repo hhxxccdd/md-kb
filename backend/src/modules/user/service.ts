@@ -34,24 +34,24 @@ export const refreshAccessToken = async (refreshToken: string) => {
     try {
         // 校验Refresh Token
         const payload = jwt.verify(refreshToken, JWT_CONFIG.secret) as RefreshTokenPayload
-        if (payload.type !== 'refresh') throwAuthError('无效的Refresh Token')
+        if (payload.type !== 'refresh') throwAuthError('无效的Refresh Token',201)
 
         // 校验数据库里的Refresh Token，防止冒用
         const user = await prisma.user.findUnique({
             where: { id: payload.userId }
         })
-        if (!user || user.refreshToken !== refreshToken) throwAuthError('Refresh Token已失效')
+        if (!user || user.refreshToken !== refreshToken) throwAuthError('Refresh Token已失效',201)
 
         // 生成新的双Token
         return generateTokenPair(payload.userId)
     } catch (e) {
-        throwAuthError('Refresh Token无效，请重新登录')
+        throwAuthError('Refresh Token无效，请重新登录',201)
     }
 }
 
 // 校验Access Token
 export const verifyAccessToken = async (accessToken: string) => {
     const payload = jwt.verify(accessToken, JWT_CONFIG.secret) as AccessTokenPayload
-    if (payload.type !== 'access') throwAuthError('无效的Access Token')
+    if (payload.type !== 'access') throwAuthError('无效的Access Token',201)
     return payload.userId
 }
