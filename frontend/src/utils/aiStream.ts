@@ -15,11 +15,23 @@ export const aiStream = async (url: string,
     onChunk: (data: { status: 'loading' | 'done' | 'error'; content: string }) => void  //回调函数
 ) => {
     try {
+        const accessToken = localStorage.getItem('accessToken')
+        const refreshToken = localStorage.getItem('refreshToken')
+        
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json'
+        }
+        
+        if (accessToken) {
+            headers['Authorization'] = `Bearer ${accessToken}`
+        }
+        if (refreshToken) {
+            headers['x-refresh-token'] = refreshToken
+        }
+
         const response = await fetch(url, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
+            headers,
             body: JSON.stringify({ params }) //通用参数
         })
 

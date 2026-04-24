@@ -57,4 +57,14 @@ export interface AccessTokenPayload {
   type: 'access'
 }
 
+// 发送验证码请求体
+export interface SendEmailCodeDto {
+  email: string;
+}
+
+// 邮箱登录请求体
+export interface EmailLoginDto {
+  email: string;
+  code: string;
+}
 

@@ -8,8 +8,17 @@ import { TokenPair } from "./type";
 //鉴权+无感刷新中间件
 export const authMiddleware = asyncHandler(async (req: Request, res: Response, next: NextFunction) => {
 
-    const accessToken = req.headers.authorization?.replace('Bearer', '')
+    const authHeader = req.headers.authorization
+    
+    
+    const accessToken = authHeader?.startsWith('Bearer ') 
+        ? authHeader.slice(7).trim()
+        : undefined
+    
     const refreshToken = req.headers['x-refresh-token'] as string;
+
+    console.log('====== accessToken:', accessToken, '======')
+    console.log('====== refreshToken:', refreshToken, '======')
 
     if (!accessToken) {
         throwAuthError('请先登录',201)
@@ -21,10 +30,11 @@ export const authMiddleware = asyncHandler(async (req: Request, res: Response, n
         req.user = { id: userId }
         return next()
     } catch (e: any) {
-
+        
         if (!refreshToken) {
             throwAuthError('登录已过期，请重新登录', 201);
         }
+
         const tokens  = await refreshAccessToken(refreshToken) as TokenPair;
 
         //设置响应头

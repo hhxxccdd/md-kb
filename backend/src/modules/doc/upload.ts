@@ -42,6 +42,8 @@ const upload = multer({
     fileFilter
 })
 
+router.use(authMiddleware)
+
 //上传核心
 router.post('/image', upload.single('image'), (req: Request, res: Response) => {
 

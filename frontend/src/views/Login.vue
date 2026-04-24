@@ -42,19 +42,19 @@
                 <form class="form-content" v-show="loginMode === 'verifycode'">
                     <div class="form-item">
                         <label class="form-label">邮箱</label>
-                        <input type="email" class="form-input" placeholder="请输入邮箱" required />
+                        <input type="email" v-model="email" class="form-input" placeholder="请输入邮箱" required />
                     </div>
                     <div class="form-item">
                         <label class="form-label">验证码</label>
                         <div class="form-item-row">
-                            <input type="text" class="form-input" placeholder="请输入验证码" required />
+                            <input type="text" v-model="code" class="form-input" placeholder="请输入验证码" required />
                             <button :disabled="countdown > 0" type="button" class="btn-code" @click="getCode">
                                 {{ countdown > 0 ? `${countdown}s` : '获取验证码' }}
                             </button>
                         </div>
                     </div>
 
-                    <button type="button" class="btn-primary" >登录</button>
+                    <button type="button" class="btn-primary" @click="emailLogin">登录</button>
                 </form>
 
             </div>
@@ -90,6 +90,7 @@
 import { ref } from 'vue'
 import { registerUser } from '../api/user'
 import { useAuthStore } from '../stores/user'
+import { sendEmailCode } from '../api/user'
 import { ElMessage } from 'element-plus'
 
 //切换登录，注册
@@ -106,14 +107,21 @@ const username = ref<string>('')
 const password = ref<string>('')
 // 注册表单数据
 const email = ref<string>('')
+// 验证码
+const code = ref<string>('')
 
 
 //还没有清除定时器，注意最后清除定时器
-const getCode = () => {
+const  getCode = async () => {
     if (countdown.value > 0) return
 
-    // 模拟发送验证码
-    console.log('发送验证码...')
+    // 发送验证码
+    const res = await sendEmailCode({ email: email.value })
+    if (res.code === 200) {
+        ElMessage.success('验证码发送成功')
+    } else {
+        ElMessage.error(res.msg)
+    }
 
     countdown.value = 60
     timer = setInterval(() => {
@@ -146,6 +154,16 @@ const register = async () => {
 const login = async () => {
     await useAuthStore().login(username.value, password.value)  
 }
+
+//邮箱登录
+const emailLogin = async () => {
+
+    await useAuthStore().emailLogin(email.value, code.value)
+
+   
+}
+
+
 
 
 

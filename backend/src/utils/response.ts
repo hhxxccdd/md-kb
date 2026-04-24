@@ -9,6 +9,17 @@ export const success = (
     statusCode = 200
 ) => {
     const response: ApiResponse = { code: ApiCode.Success, data, msg }
+    
+    if (data && typeof data === 'object') {
+        const dataObj = data as any
+        if (dataObj.accessToken) {
+            res.setHeader('x-access-token', dataObj.accessToken)
+        }
+        if (dataObj.refreshToken) {
+            res.setHeader('x-refresh-token', dataObj.refreshToken)
+        }
+    }
+    
     return res.status(statusCode).json(response)
 }
 

@@ -22,6 +22,7 @@ request.interceptors.request.use((config) => {
     const refreshToken = localStorage.getItem('refreshToken')
     if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`
     if (refreshToken) config.headers['x-refresh-Token'] = refreshToken
+    console.log('config', config)
     return config
 
 })
@@ -29,11 +30,18 @@ request.interceptors.request.use((config) => {
 //响应拦截器
 request.interceptors.response.use(
     response => {
-        // 自动更新响应头里的新 Token
-        const newAccess = response.headers['x-access-token']
-        const newRefresh = response.headers['x-refresh-token']
-        if (newAccess) localStorage.setItem('accessToken', newAccess)
-        if (newRefresh) localStorage.setItem('refreshToken', newRefresh)
+        //自动更新响应头里的新 Token
+        const accessToken = response.headers['x-access-token']
+        const refreshToken = response.headers['x-refresh-token']
+
+        // 注意：这里拿到的可能是 string | string[] | undefined
+        // 转成字符串再存
+        if (typeof accessToken === 'string') {
+            localStorage.setItem('accessToken', accessToken)
+        }
+        if (typeof refreshToken === 'string') {
+            localStorage.setItem('refreshToken', refreshToken)
+        }
         return response.data
     },
     async (error) => {
@@ -54,12 +62,9 @@ request.interceptors.response.use(
             }
             try {
                 //刷新Token
-                const res = await axios.post(`${request.defaults.baseURL}/user/refreshToken`, { refreshToken })
+                const res = await request.post('/user/refreshToken', { refreshToken })
 
-                const { accessToken, refreshToken: newRefresh } = res.data.data
-
-                localStorage.setItem('accessToken', accessToken)
-                if (newRefresh) localStorage.setItem('refreshToken', newRefresh)
+                const { accessToken, refreshToken: newRefresh } = res.data
 
                 // 重发原请求
                 originalRequest.headers.Authorization = `Bearer ${accessToken}`

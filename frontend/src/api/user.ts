@@ -21,6 +21,11 @@ export interface returnUser {
     refreshToken: string
 }
 
+export interface EmailLoginDto {
+    email: string,
+    code: string
+}
+
 //注册用户
 export const registerUser = (data: registerUser): Promise<ApiResponse<returnUser>> => {
     return request.post('/user/register', data)
@@ -29,5 +34,15 @@ export const registerUser = (data: registerUser): Promise<ApiResponse<returnUser
 //登录用户
 export const loginUser = (data: registerUser): Promise<ApiResponse<returnUser>> => {
     return request.post('/user/login', data)
+}
+
+//邮箱登录
+export const emailLoginUser = (data: EmailLoginDto): Promise<ApiResponse<returnUser>> => {
+    return request.post('/user/emailLogin', data)
+}
+
+//发送邮箱验证码
+export const sendEmailCode = (data: { email: string }): Promise<ApiResponse<string>> => {
+    return request.post('/user/sendEmailCode', data)
 }
 
