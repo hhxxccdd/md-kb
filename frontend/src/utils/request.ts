@@ -1,8 +1,8 @@
 import axios from "axios";
 import { ElMessage } from 'element-plus'
 import router from '../router'
+import { ApiCode } from '../type/api'
 
-//创建axios实例
 const request = axios.create({
     baseURL: 'http://localhost:3000/api',
     timeout: 10000
@@ -11,31 +11,54 @@ const request = axios.create({
 declare module 'axios' {
     export interface InternalAxiosRequestConfig {
         _retry?: boolean
+        _skipAuthRefresh?: boolean
     }
 }
 
+let refreshPromise: Promise<{ accessToken: string; refreshToken: string }> | null = null
 
-//请求拦截器
+const clearAuthAndRedirect = () => {
+    localStorage.removeItem('accessToken')
+    localStorage.removeItem('refreshToken')
+    localStorage.removeItem('userInfo')
+    ElMessage.error('登录已过期')
+    router.push('/login')
+}
+
+const refreshAuthToken = async (refreshToken: string) => {
+    if (!refreshPromise) {
+        refreshPromise = request
+            .post('/user/refreshToken', { refreshToken }, { _skipAuthRefresh: true } as any)
+            .then((res) => {
+                const { accessToken, refreshToken: newRefreshToken } = res.data
+                localStorage.setItem('accessToken', accessToken)
+                localStorage.setItem('refreshToken', newRefreshToken)
+                return { accessToken, refreshToken: newRefreshToken }
+            })
+            .finally(() => {
+                refreshPromise = null
+            })
+    }
+
+    return refreshPromise
+}
+
 request.interceptors.request.use((config) => {
-
     const accessToken = localStorage.getItem('accessToken')
     const refreshToken = localStorage.getItem('refreshToken')
-    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`
-    if (refreshToken) config.headers['x-refresh-Token'] = refreshToken
-    console.log('config', config)
-    return config
 
+    config.headers = config.headers ?? {}
+    if (accessToken) config.headers.Authorization = `Bearer ${accessToken}`
+    if (refreshToken) config.headers['x-refresh-token'] = refreshToken
+
+    return config
 })
 
-//响应拦截器
 request.interceptors.response.use(
     response => {
-        //自动更新响应头里的新 Token
         const accessToken = response.headers['x-access-token']
         const refreshToken = response.headers['x-refresh-token']
 
-        // 注意：这里拿到的可能是 string | string[] | undefined
-        // 转成字符串再存
         if (typeof accessToken === 'string') {
             localStorage.setItem('accessToken', accessToken)
         }
@@ -45,40 +68,49 @@ request.interceptors.response.use(
         return response.data
     },
     async (error) => {
-
         const originalRequest = error.config
+        const status = error.response?.status
+        const code = error.response?.data?.code
 
-        //处理401
-        if (error.response?.status === 401 && !originalRequest._retry) {
+        if (
+            status === 401 &&
+            code === ApiCode.AccessTokenExpired &&
+            originalRequest &&
+            !originalRequest._retry &&
+            !originalRequest._skipAuthRefresh
+        ) {
             originalRequest._retry = true
             const refreshToken = localStorage.getItem('refreshToken')
 
             if (!refreshToken) {
-                // 没 RefreshToken，直接去登录
-                localStorage.clear()
-                ElMessage.error('登录已过期')
-                router.push('/login')
+                clearAuthAndRedirect()
                 return Promise.reject(error)
             }
+
             try {
-                //刷新Token
-                const res = await request.post('/user/refreshToken', { refreshToken })
-
-                const { accessToken, refreshToken: newRefresh } = res.data
-
-                // 重发原请求
+                const { accessToken } = await refreshAuthToken(refreshToken)
+                originalRequest.headers = originalRequest.headers ?? {}
                 originalRequest.headers.Authorization = `Bearer ${accessToken}`
                 return request(originalRequest)
             } catch (err) {
-                localStorage.clear()
-                ElMessage.error('登录已过期')
-                router.push('/login') 
+                clearAuthAndRedirect()
                 return Promise.reject(err)
             }
         }
+
+        if (
+            status === 401 &&
+            (
+                code === ApiCode.RefreshTokenExpired ||
+                code === ApiCode.RefreshTokenInvalid ||
+                code === ApiCode.LoginExpired
+            )
+        ) {
+            clearAuthAndRedirect()
+        }
+
         return Promise.reject(error)
     }
-
 )
 
 export default request

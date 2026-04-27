@@ -23,11 +23,11 @@
                 <div class="editor-head-right-func">
                     <div class="avatar">
                         <div class="avatar-1">
-                            <el-avatar :size="30" :src="state.circleUrl" />
+                            <el-avatar :size="30" :src="userInfo?.avatar" />
                         </div>
-                        <div class="avatar-2">
+                        <!-- <div class="avatar-2">
                             <el-avatar :size="30" :src="state.circleUrl" />
-                        </div>
+                        </div> -->
                     </div>
                     <div class="share">
                         <el-button type="primary">分享</el-button>
@@ -51,21 +51,23 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref } from 'vue'
 import MyMdEditor from '../component/editor/MyMdEditor.vue';
+//引入Store
+import { useAuthStore } from '../stores/user';
 //引入elementplus图标样式
 import { Back } from '@element-plus/icons-vue'
 import AiModel from '../component/ai/AiModel.vue';
+
+
+const userInfo = useAuthStore().userInfo
 
 const id = 1
 const title = ref<string>('')
 const status = ref<string>('')
 const editorContent = ref<string>('')
 
-const state = reactive({
-    circleUrl:
-        'https://fuss10.elemecdn.com/e/5d/4a731a90594a4af544c0c25941171jpeg.jpeg',
-})
+
 
 //获取封装组件myMdEditor实例
 const myMdEditorRef = ref<typeof MyMdEditor>()

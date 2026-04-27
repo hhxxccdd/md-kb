@@ -10,13 +10,15 @@ import { globalErrorHandler } from './middleware/errorMiddleware';
 
 const app = express();
 const PORT = 3000;
+const uploadsRoot = path.join(process.cwd(), 'src', 'uploads');
 
 
 app.use(cors({
   exposedHeaders: ['x-access-token', 'x-refresh-token']
 }));
+
 app.use(express.json());
-app.use('/uploads',express.static(path.join(__dirname,'uploads')))
+app.use('/uploads', express.static(uploadsRoot))
 
 
 app.use('/api/doc',docrouter)

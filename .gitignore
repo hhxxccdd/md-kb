@@ -4,3 +4,7 @@ node_modules
 dist
 build
 *.log
+.vscode/
+log.txt
+backend/src/uploads/
+backend/src/modules/uploads/

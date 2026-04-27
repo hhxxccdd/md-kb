@@ -7,6 +7,7 @@ import { success } from '../../utils/response'
 import { authMiddleware } from '../user/middleware'
 
 const router: Router = express.Router()
+const uploadsRoot = path.join(process.cwd(), 'src', 'uploads')
 
 router.use(authMiddleware)
 
@@ -14,7 +15,7 @@ router.use(authMiddleware)
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         const dateDir = new Date().toISOString().split('T')[0]
-        const uploadpath = path.join(__dirname, '../uploads', dateDir)
+        const uploadpath = path.join(uploadsRoot, dateDir)
 
         if (!fs.existsSync(uploadpath)) {
             fs.mkdirSync(uploadpath, { recursive: true })

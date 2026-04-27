@@ -2,18 +2,16 @@
 
     <div class="login-page">
 
-        <!-- 左侧品牌区 -->
         <div class="brand-section">
             <h1 class="brand-title">AI 增强知识库</h1>
             <p class="brand-desc">Markdown 编辑 . AI智能问答 . 团队协作</p>
             <div class="brand-feature">
-                <div class="feature-item">✦ 原生 Markdown 编辑体验</div>
-                <div class="feature-item">✦ 带上下文记忆的文档智能问答</div>
-                <div class="feature-item">✦ 私有/公开文档权限管理</div>
+                <div class="feature-item">原生 Markdown 编辑体验</div>
+                <div class="feature-item">带上下文记忆的文档智能问答</div>
+                <div class="feature-item">私有/公开文档权限管理</div>
             </div>
         </div>
 
-        <!-- 右侧表单区 -->
         <div class="form-card">
             <div class="form-tab">
                 <div @click="mode = 'login'" :class="['tab-item', { active: mode === 'login' }]">登录</div>
@@ -36,7 +34,7 @@
                         <label class="form-label">密码</label>
                         <input type="text" v-model="password" class="form-input" placeholder="密码" required>
                     </div>
-                    <button type="button" class="btn-primary" @click="login">登录</button>  
+                    <button type="button" class="btn-primary" @click="login">登录</button>
                 </form>
 
                 <form class="form-content" v-show="loginMode === 'verifycode'">
@@ -59,7 +57,6 @@
 
             </div>
 
-            <!-- 注册表单 -->
             <form class="form-content" v-show="mode === 'register'">
                 <div class="form-item">
                     <label class="form-label">用户名</label>
@@ -76,51 +73,35 @@
                 <button type="button" class="btn-primary" @click="register">注册</button>
             </form>
         </div>
-
-
-
     </div>
-
-
-
-
 </template>
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { registerUser } from '../api/user'
+import { registerUser, sendEmailCode } from '../api/user'
 import { useAuthStore } from '../stores/user'
-import { sendEmailCode } from '../api/user'
 import { ElMessage } from 'element-plus'
+import { ApiCode } from '../type/api'
 
-//切换登录，注册
 const mode = ref<string>('login')
-//切换密码，验证码
 const loginMode = ref<string>('password')
-//验证码倒计时
 const countdown = ref<number>(0)
-// 定时器实例
 let timer: ReturnType<typeof setInterval> | null = null
 
-// 登录表单数据
 const username = ref<string>('')
 const password = ref<string>('')
-// 注册表单数据
 const email = ref<string>('')
-// 验证码
 const code = ref<string>('')
 
-
-//还没有清除定时器，注意最后清除定时器
-const  getCode = async () => {
+const getCode = async () => {
     if (countdown.value > 0) return
 
-    // 发送验证码
     const res = await sendEmailCode({ email: email.value })
-    if (res.code === 200) {
+    if (res.code === ApiCode.Success) {
         ElMessage.success('验证码发送成功')
     } else {
         ElMessage.error(res.msg)
+        return
     }
 
     countdown.value = 60
@@ -133,7 +114,6 @@ const  getCode = async () => {
     }, 1000)
 }
 
-//注册
 const register = async () => {
     const data = {
         username: username.value,
@@ -141,8 +121,7 @@ const register = async () => {
         email: email.value
     }
     const res = await registerUser(data)
-    console.log(res)
-    if (res.code === 200) {
+    if (res.code === ApiCode.Success) {
         ElMessage.success('注册成功')
         mode.value = 'login'
     } else {
@@ -150,21 +129,13 @@ const register = async () => {
     }
 }
 
-//登录
 const login = async () => {
-    await useAuthStore().login(username.value, password.value)  
+    await useAuthStore().login(username.value, password.value)
 }
 
-//邮箱登录
 const emailLogin = async () => {
-
     await useAuthStore().emailLogin(email.value, code.value)
-
-   
 }
-
-
-
 
 
 </script>
@@ -312,7 +283,6 @@ const emailLogin = async () => {
     color: #86909c;
 }
 
-/* 验证码按钮 */
 .btn-code {
     height: 44px;
     padding: 0 16px;
@@ -339,8 +309,6 @@ const emailLogin = async () => {
     border-color: #e5e6eb;
 }
 
-
-/* 按钮 - 和编辑页顶部按钮完全一致 */
 .btn-primary {
     width: 100%;
     height: 44px;
@@ -368,8 +336,6 @@ const emailLogin = async () => {
     cursor: not-allowed;
 }
 
-
-/* 响应式适配 */
 @media (max-width: 1000px) {
     .login-page {
         flex-direction: column;
