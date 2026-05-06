@@ -15,10 +15,10 @@ import { nextTick, onMounted, ref, watch } from 'vue'
 import { useRouter } from 'vue-router';
 import { MdEditor } from 'md-editor-v3';
 import type { ToolbarNames } from 'md-editor-v3';
-import request from '../../utils/request';
 import 'md-editor-v3/lib/style.css';
 import type { ExposeParam } from 'md-editor-v3';
 import { Emoji, ExportPDF } from '@vavt/v3-extension'
+import { createDocument, getDocumentById, updateDocument, uploadImage } from '../../api/doc';
 // 只导入 Emoji 组件需要的样式
 import "@vavt/v3-extension/lib/asset/Emoji.css";
 import '@vavt/v3-extension/lib/asset/ExportPDF.css';
@@ -42,7 +42,7 @@ const editorRef = ref<ExposeParam>();
 
 //定义Props，接受父组件传值
 const { id, theme } = defineProps<{
-    id: string | number,
+    id?: string | number,
     theme?: 'light' | 'dark'
 }>()
 
@@ -100,16 +100,16 @@ const saveDoc = async () => {
     try {
         if (id) {
             // ✅ 保存时提交子组件存储的 title，不再是空！
-            await request.post(`/doc/${id}`, {
+            await updateDocument(id, {
                 title: title.value,
                 content: editorContent.value
             })
         } else {
-            const res = await request.post('/doc', {
+            const res = await createDocument({
                 title: title.value,
                 content: editorContent.value
             })
-            router.push(`/edito/${res.data.id}`)
+            router.push(`/edit/${res.data.id}`)
         }
         emit('update:status', '已保存')
     } catch (err) {
@@ -128,7 +128,7 @@ const handleUploadImg = async (files: File[], callBack: (urls: string[]) => void
     formData.append('image', file)
     try {
         // 发送请求
-        const res = await request.post('/upload/image', formData)
+        const res = await uploadImage(formData)
         // 打印返回结果，排查问题
         const imageUrl = res.data.url
         // 传给编辑器，显示图片（直接传递字符串数组）
@@ -151,10 +151,10 @@ const debounceSave = debounce(saveDoc, 800)
 // 加载文档：读取后端的标题+内容，赋值给子组件本地存储
 const loadDoc = async () => {
     if (!id) return
-    const res = await request.get(`/doc/${id}`)
+    const res = await getDocumentById(id)
     // ✅ 存储后端返回的标题
     title.value = res.data.title
-    editorContent.value = res.data.content
+    editorContent.value = res.data.content ?? ''
     // 同步给父组件
     emit('update:title', title.value)
     emit('update:editorContent', editorContent.value)

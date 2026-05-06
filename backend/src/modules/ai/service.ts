@@ -49,15 +49,17 @@ export async function handleAIStream(req: Request, res: Response, templateType: 
         const chatParams: ChatParams = {
             model: AI_CONFIG.MODEL,
             input: { messages: [{ role: 'user', content: prompt }] },
-            parameters: { stream: true },
-            incremental_output: true
+            parameters: {
+                stream: true,
+                result_format: 'message',
+                incremental_output: true
+            }
         }
 
         //发送请求
         const stream = await requestAI(chatParams)
 
         let buffer = ""
-        let lastText = ""
 
         //监听流式数据（通用流式解析）
         stream.on('data', (chunk: Buffer) => {
@@ -73,17 +75,21 @@ export async function handleAIStream(req: Request, res: Response, templateType: 
                 try {
                     const jsonStr = dataLine.replace(/^data:\s*/, '').trim();
                     const data = JSON.parse(jsonStr);
-                    const fullText = data.output?.text || '';
-                    const incrementalContent = fullText.slice(lastText.length);
-                    lastText = fullText;
+                    const incrementalContent =
+                        data.output?.choices?.[0]?.message?.content ??
+                        data.output?.text ??
+                        '';
 
                     if (incrementalContent) {
                         send({ content: incrementalContent }); // ✅ 能执行到这里
                     }
 
-                    if (data.output?.finish_reason === "stop") {
+                    const finishReason =
+                        data.output?.choices?.[0]?.finish_reason ??
+                        data.output?.finish_reason;
+
+                    if (finishReason === "stop") {
                         setTimeout(() => {
-                            send({ status: SSEStatus.DONE });
                             close();
                         }, 100);
                     }

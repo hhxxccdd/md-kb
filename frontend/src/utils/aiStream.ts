@@ -1,29 +1,36 @@
-/**
- * 通用 SSE 流式请求工具（基于你的代码封装） 对代码进行解构，否则无法实现高的扩展性
- * @param url 后端接口地址
- * @param params 请求参数 { content, context? }
- * @param onChunk 流式回调：接收每一段数据
- */
-
-interface chatList {
-     role:'user'|'ai'
-     content:string
+interface ChatList {
+    role: 'user' | 'ai'
+    content: string
 }
 
-export const aiStream = async (url: string,
-    params: { content?: string; docContent?: string; targetLang?: string; question?: string,historyMessages?:chatList[] },
-    onChunk: (data: { status: 'loading' | 'done' | 'error'; content: string }) => void  //回调函数
+type StreamData = {
+    status: 'loading' | 'done' | 'error'
+    content: string
+}
+
+type StreamParams = {
+    content?: string
+    docContent?: string
+    targetLang?: string
+    question?: string
+    historyMessages?: ChatList[]
+}
+
+export const aiStream = async (
+    url: string,
+    params: StreamParams,
+    onChunk: (data: StreamData) => void
 ) => {
     try {
         const accessToken = localStorage.getItem('accessToken')
         const refreshToken = localStorage.getItem('refreshToken')
-        
+
         const headers: Record<string, string> = {
             'Content-Type': 'application/json'
         }
-        
+
         if (accessToken) {
-            headers['Authorization'] = `Bearer ${accessToken}`
+            headers.Authorization = `Bearer ${accessToken}`
         }
         if (refreshToken) {
             headers['x-refresh-token'] = refreshToken
@@ -32,46 +39,40 @@ export const aiStream = async (url: string,
         const response = await fetch(url, {
             method: 'POST',
             headers,
-            body: JSON.stringify({ params }) //通用参数
+            body: JSON.stringify({ params })
         })
 
-        if (!response.ok) throw new Error('请求失败')
+        if (!response.ok) {
+            throw new Error(`AI request failed: ${response.status}`)
+        }
 
         const reader = response.body?.getReader()
-        if (!reader) throw new Error('浏览器不支持流式读取')
+        if (!reader) {
+            throw new Error('Browser does not support streaming reads')
+        }
 
         const decoder = new TextDecoder('utf-8')
         let buffer = ''
         let isFlowDone = false
 
-        while (true) {
-            if (isFlowDone) break
+        while (!isFlowDone) {
             const { done, value } = await reader.read()
             if (done) break
 
-            const chunk = decoder.decode(value, { stream: true })
-            buffer += chunk
-            const events = chunk.split('\n\n')
+            buffer += decoder.decode(value, { stream: true })
+            const events = buffer.split('\n\n')
             buffer = events.pop() || ''
 
-            //处理每一段传过来的SSE事件
             for (const event of events) {
                 if (!event.trim()) continue
-                const lines = event.split('\n')
-                let dataJsonStr = ''
 
-                for (const line of lines) {
-                    if (line.startsWith('data:')) {
-                        dataJsonStr = line.slice(5).trim()
-                        break
-                    }
-                }
+                const dataLine = event
+                    .split('\n')
+                    .find((line) => line.startsWith('data:'))
 
-                if (!dataJsonStr) continue
-                const data = JSON.parse(dataJsonStr)
+                if (!dataLine) continue
 
-
-                //执行回调，将数据抛给组件
+                const data = JSON.parse(dataLine.slice(5).trim()) as StreamData
                 onChunk(data)
 
                 if (data.status === 'done') {
@@ -81,9 +82,7 @@ export const aiStream = async (url: string,
             }
         }
     } catch (err) {
-
-        onChunk({ status: 'error', content: '请求失败，请重试' })
-
+        const message = err instanceof Error ? err.message : 'Request failed'
+        onChunk({ status: 'error', content: message })
     }
-
 }

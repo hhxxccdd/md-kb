@@ -50,17 +50,20 @@ import { Close } from '@element-plus/icons-vue';
 //导入支持上下文请求
 import { getSessionId, getContext, saveMessage } from '../../api'
 import type { ChatMessage } from '../../type/chat';
-
-//模拟user_id 和 doc_id
-const userId = ref<number>(1)
-const docId = ref<number>(1)
+//引入userId信息与docId
+import { useAuthStore } from '../../stores/user';
+import { ElMessage } from 'element-plus';
 
 const props = defineProps<{
   visible: boolean
   mode: 'polish' | 'translate' | 'answerDoc'
   text: string
   documentContext?: string
+  doc_id:string|undefined
 }>()
+
+const userId = useAuthStore().userInfo?.id
+const docId = computed(() => Number(props.doc_id))
 
 const emit = defineEmits<{
   'update:visible': [val: boolean]
@@ -87,6 +90,17 @@ const session_id = ref<string>()
 // 监听弹窗打开
 watch(() => props.visible, async (val) => {
   if (val) {
+
+    if(!userId){
+       ElMessage.warning('请先登录')
+       return
+    }
+
+    if(!props.doc_id || !Number.isInteger(docId.value)){
+      ElMessage.warning('请先保存文档后再使用 AI 问答')
+      return
+    }
+
     // 重置状态
     aiResult.value = ''
     loading.value = false
@@ -103,7 +117,7 @@ watch(() => props.visible, async (val) => {
     //问答功能
     if (props.mode === 'answerDoc') {
       //获取上下文id
-      const params = { user_id: userId.value, doc_id: docId.value }
+      const params = { user_id: userId, doc_id: docId.value }
       const sessionId = await getSessionId(params)
       session_id.value = sessionId.data
       //获取上下文
@@ -138,10 +152,15 @@ const handleCommonFeature = async (Lang?: string) => {
 // ==============================================
 const sendQuestion = async () => {
   if (!question.value.trim()) return
+  if (!props.doc_id) {
+    ElMessage.warning('会话还没有初始化,请保存文档后回答')
+    return
+  }
   const userMsg = question.value
   chatList.value.push({ role: 'user', content: userMsg })
   chatList.value.push({ role: 'ai', content: 'AI思考中' })  //用来做占位符
   question.value = ''
+  loading.value = true
 
 
 
@@ -152,7 +171,7 @@ const sendQuestion = async () => {
   }
 
   //保存AI聊天记录
-  saveMessage(message)
+  await saveMessage(message)
 
 
   let aiAnswer = ''
@@ -172,15 +191,20 @@ const sendQuestion = async () => {
         //实时跳转
         scrollToBottom()
       }
+      if (data.status === 'error') {
+        chatList.value[chatList.value.length - 1] = { role: 'ai', content: data.content || 'AI 请求失败' }
+      }
     }
   )
+  loading.value = false
+  if (!aiAnswer) return
   message = {
     session_id: session_id.value as string,
     role: 'ai',
     content: aiAnswer
   }
 
-  saveMessage(message)
+  await saveMessage(message)
 }
 
 
@@ -215,7 +239,7 @@ const confirmReplace = () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999;
+  z-index: 2;
 }
 
 .ai-modal-content {

@@ -2,7 +2,7 @@
     <div class="editor">
         <div class="editor-head">
             <div class="editor-head-left">
-                <div class="back">
+                <div class="back" @click="router.push('/')">
                     <el-icon size="24">
                         <Back />
                     </el-icon>
@@ -43,7 +43,7 @@
         </div>
         <div>
             <!-- AI弹窗 -->
-            <AiModel v-model:visible="modalVisible" :mode="aiMode" :text="selectedText" @replace="replace"
+            <AiModel :doc_id="id" v-model:visible="modalVisible" :mode="aiMode" :text="selectedText" @replace="replace"
                 :documentContext="editorContent" />
         </div>
     </div>
@@ -51,7 +51,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
+import { useRoute,useRouter } from 'vue-router'
 import MyMdEditor from '../component/editor/MyMdEditor.vue';
 //引入Store
 import { useAuthStore } from '../stores/user';
@@ -60,9 +61,12 @@ import { Back } from '@element-plus/icons-vue'
 import AiModel from '../component/ai/AiModel.vue';
 
 
-const userInfo = useAuthStore().userInfo
 
-const id = 1
+const userInfo = useAuthStore().userInfo
+const route = useRoute()
+const router = useRouter()
+
+const id = computed(() => route.params.id as string | undefined)
 const title = ref<string>('')
 const status = ref<string>('')
 const editorContent = ref<string>('')

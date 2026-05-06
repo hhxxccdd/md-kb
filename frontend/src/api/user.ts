@@ -46,3 +46,7 @@ export const sendEmailCode = (data: { email: string }): Promise<ApiResponse<stri
     return request.post('/user/sendEmailCode', data)
 }
 
+// 根据用户 id 获取用户名
+export const getUserNameById = (id: string | number): Promise<ApiResponse<string>> => {
+    return request.get(`/user/getUserById/${id}`)
+}

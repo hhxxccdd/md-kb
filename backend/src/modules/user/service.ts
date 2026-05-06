@@ -2,7 +2,7 @@ import jwt, { JsonWebTokenError, TokenExpiredError } from 'jsonwebtoken'
 import prisma from '../../utils/prisma'
 import { JWT_CONFIG } from './config'
 import { TokenPair, AccessTokenPayload, RefreshTokenPayload } from './type'
-import { throwAuthError } from '../../utils/throwError'
+import { throwAuthError, throwBusinessError } from '../../utils/throwError'
 import { ApiCode } from '../../utils/types/response'
 
 const refreshPromises = new Map<number, Promise<TokenPair>>()
@@ -89,6 +89,7 @@ export const verifyAccessToken = async (accessToken: string) => {
     } catch (e) {
         if (e instanceof TokenExpiredError) {
             throwAuthError('Access Token 已过期', 401, ApiCode.AccessTokenExpired)
+            
         }
         if (e instanceof JsonWebTokenError) {
             throwAuthError('无效的 Access Token', 401, ApiCode.AccessTokenInvalid)
@@ -97,6 +98,31 @@ export const verifyAccessToken = async (accessToken: string) => {
     }
 }
 
+
+//根据id查找用户姓名
+export const getUserNameById = async (userId:number) => {
+    if (!Number.isInteger(userId) || userId <= 0) {
+        throwBusinessError('无效的用户 id', 400, ApiCode.InvalidParams)
+    }
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+        select: {
+            id: true,
+            username: true,
+            avatar: true
+        }
+    })
+
+    if (!user) {
+        throwBusinessError('用户不存在', 404, ApiCode.UserNotFound)
+    }
+
+    return user
+}
+
 export const generateCode = (): string => {
     return Math.floor(100000 + Math.random() * 900000).toString();
 };
+
+

@@ -13,7 +13,6 @@ const MAX_CONTEXT_MESSAGES = 10
 
 aiContextRouter.use(authMiddleware)
 
-
 //1.通过user_id和doc_id获取session_id
 aiContextRouter.post('/sessionId', async (req, res) => {
 
@@ -48,8 +47,6 @@ aiContextRouter.get('/context/:session_id', async (req, res) => {
     })
     success(res, messages, '获取成功')
 })
-
-
 
 
 //3.保存单条消息

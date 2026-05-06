@@ -6,7 +6,7 @@ export const throwBusinessError = (
   message: string,
   statusCode = 400,
   code: number = ApiCode.InvalidParams
-) => {
+): never => {
   const err = new Error(message) as AppError;
   err.errorCode = 'BUSINESS';
   err.statusCode = statusCode;
@@ -18,7 +18,7 @@ export const throwAIError = (
   message: string,
   statusCode = 500,
   code: number = ApiCode.InternalError
-) => {
+): never => {
   const err = new Error(message) as AppError;
   err.errorCode = 'AI';
   err.statusCode = statusCode;
@@ -30,7 +30,7 @@ export const throwAuthError = (
   message: string,
   statusCode = 401,
   code: number = ApiCode.Unauthorized
-) => {
+): never => {
   const err = new Error(message) as AppError;
   err.errorCode = 'AUTH';
   err.statusCode = statusCode;

@@ -1,74 +1,152 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  provider     = "mysql"
+  url          = env("DATABASE_URL")
   relationMode = "prisma"
 }
 
-//文档表
-model Document{
-  id         Int      @id @default(autoincrement())  //主键,自增数字
-  title      String                                 //文档标题(必填)
-  content    String?  @db.Text                      //文档内容(可选,长文本存Markdown)
-  created_at  DateTime @default(now())               //创建时间(自动生成时间)
-  updated_at  DateTime @updatedAt                     //更新时间(自动更新)
+// 邀请状态
+// PENDING: 等待接受
+// ACCEPTED: 已接受
+// REJECTED: 已拒绝
+// EXPIRED: 已过期
+// CANCELED: 已取消
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELED
 }
 
+// 用户表
+// 作用：存储系统用户信息，用于登录、鉴权、文档归属和协作关系
+model User {
+  id            Int      @id @default(autoincrement()) // 用户 ID，主键
+  username      String   @unique                       // 用户名，唯一
+  avatar        String?                                // 用户头像地址，可为空
+  email         String   @unique                       // 邮箱，唯一
+  password_hash String                                 // 加密后的密码
+  refreshToken  String?                                // 当前有效的 refreshToken，用于刷新 accessToken
+  created_at    DateTime @default(now())               // 用户创建时间
+  last_login_at DateTime                               // 最近登录时间
 
-//用户表
-model User{
-  id            Int     @id @default(autoincrement())
-  username      String  @unique 
-  avatar        String?
-  email         String  @unique
-  password_hash String
-  //新增的Refresh Token字段，可选（刚注册的用户还没登录，没有这个值）
-  refreshToken String?
-  created_at    DateTime @default(now())
-  last_login_at DateTime
-  //保留关联,方便连表查询
-  sessions      ChatSession[]
+  owned_documents  Document[]             @relation("DocumentOwner")      // 该用户创建/拥有的文档
+  edited_documents Document[]             @relation("DocumentLastEditor") // 该用户最后编辑过的文档
+  collaborations   DocumentCollaborator[]                                  // 该用户参与协作的文档关系
+  sent_invites     DocumentInvite[]       @relation("InviteSender")        // 该用户发出的文档邀请
+  chat_sessions    ChatSession[]                                           // 该用户的 AI 文档问答会话
 }
 
-//聊天会话表
-model ChatSession{
-   id              Int     @id @default(autoincrement())
-   session_uuid    String  @unique
-   user_id         Int
-   doc_id          Int
-   created_at      DateTime @default(now())
-   //保留关联
-   user            User     @relation(fields: [user_id], references: [id])      
-   message         ChatMessage[]
+// 文档表
+// 作用：存储文档当前最新内容，以及协同编辑需要的版本信息
+model Document {
+  id             Int      @id @default(autoincrement()) // 文档 ID，主键
+  title          String                                  // 文档标题
+  content        String?  @db.LongText                   // 文档 Markdown 正文，存当前最新版本
+  owner_user_id  Int                                     // 文档创建者/拥有者用户 ID
+  version        Int      @default(1)                    // 文档版本号，每次成功同步后递增
+  last_edited_by Int?                                    // 最后编辑该文档的用户 ID
+  is_deleted     Boolean  @default(false)                // 软删除标记，true 表示已删除
+  is_shared      Boolean  @default(false)                      // 标记是否是共享文档(是否已经分享)
+  created_at     DateTime @default(now())                // 文档创建时间
+  updated_at     DateTime @updatedAt                     // 文档更新时间
+
+  owner         User                   @relation("DocumentOwner", fields: [owner_user_id], references: [id])      // 文档创建者
+  last_editor   User?                  @relation("DocumentLastEditor", fields: [last_edited_by], references: [id]) // 最后编辑者
+  collaborators DocumentCollaborator[] // 文档协作者列表
+  invites       DocumentInvite[]       // 文档邀请记录
+  revisions     DocumentRevision[]     // 文档历史版本
+  chat_sessions ChatSession[]          // 和该文档关联的 AI 问答会话
+
+  @@index([owner_user_id, updated_at])  // 加速查询某个用户创建的文档
+  @@index([is_deleted, updated_at])     // 加速查询未删除文档列表
 }
 
+// 文档协作者表
+// 作用：表示“哪些用户可以进入并编辑哪篇文档”
+// 说明：你当前设计里不做复杂权限，进入该表的用户默认都可以编辑
+model DocumentCollaborator {
+  id          Int      @id @default(autoincrement()) // 协作关系 ID，主键
+  document_id Int                                     // 文档 ID
+  user_id     Int                                     // 协作者用户 ID
+  joined_at   DateTime @default(now())                // 加入协作的时间
 
-//聊天信息表
-model ChatMessage{
-     id           Int     @id  @default(autoincrement())
-     session_id   String 
-     role         String
-     content      String
-     created_at   DateTime @default(now())
-     //保留关联
-     session      ChatSession  @relation(fields: [session_id],references: [session_uuid])
+  document Document @relation(fields: [document_id], references: [id]) // 关联文档
+  user     User     @relation(fields: [user_id], references: [id])     // 关联用户
+
+  @@unique([document_id, user_id]) // 同一个用户不能重复加入同一篇文档
+  @@index([user_id])               // 加速查询某个用户参与的文档
 }
 
+// 文档邀请表
+// 作用：支持通过分享链接邀请用户加入某篇文档的协作
+// 流程：创建邀请 -> 用户打开链接 -> 登录/确认 -> 加入 DocumentCollaborator
+model DocumentInvite {
+  id              Int          @id @default(autoincrement()) // 邀请 ID，主键
+  document_id     Int                                      // 被邀请加入的文档 ID
+  inviter_user_id Int                                      // 发起邀请的用户 ID
+  invitee_user_id Int?                                     // 被邀请用户 ID，可为空；为空表示链接未绑定具体用户
+  token           String       @unique                      // 邀请链接 token，用于识别邀请
+  status          InviteStatus @default(PENDING)            // 邀请状态
+  expires_at      DateTime?                                 // 邀请过期时间，可为空
+  accepted_at     DateTime?                                 // 接受邀请的时间
+  created_at      DateTime     @default(now())              // 邀请创建时间
 
+  document Document @relation(fields: [document_id], references: [id])               // 关联文档
+  inviter  User     @relation("InviteSender", fields: [inviter_user_id], references: [id]) // 邀请发起人
 
+  @@index([document_id, status]) // 加速查询某篇文档下的邀请
+  @@index([invitee_user_id])     // 加速查询某个用户收到的邀请
+}
 
+// 文档历史版本表
+// 作用：保存每次成功同步后的历史版本，方便回滚、查看历史、排查覆盖问题
+// 说明：你现在是整篇 Markdown 每 1 到 2 秒自动同步，所以这里保存的是每次同步后的完整内容
+model DocumentRevision {
+  id          Int      @id @default(autoincrement()) // 历史版本 ID，主键
+  document_id Int                                     // 文档 ID
+  version     Int                                     // 对应的文档版本号
+  content     String   @db.LongText                   // 该版本的完整 Markdown 内容
+  created_by  Int                                     // 创建该版本的用户 ID
+  created_at  DateTime @default(now())                // 版本创建时间
 
+  document Document @relation(fields: [document_id], references: [id]) // 关联文档
 
+  @@unique([document_id, version]) // 同一篇文档的版本号不能重复
+  @@index([document_id, created_at]) // 加速查询某篇文档的历史版本
+}
 
+// AI 聊天会话表
+// 作用：记录某个用户针对某篇文档的一次 AI 问答会话
+model ChatSession {
+  id           Int      @id @default(autoincrement()) // 会话 ID，主键
+  session_uuid String   @unique                       // 会话 UUID，对外使用
+  user_id      Int                                    // 用户 ID
+  doc_id       Int                                    // 文档 ID
+  created_at   DateTime @default(now())               // 会话创建时间
 
+  user     User          @relation(fields: [user_id], references: [id]) // 关联用户
+  document Document      @relation(fields: [doc_id], references: [id])  // 关联文档
+  messages ChatMessage[]                                                // 会话下的消息列表
 
+  @@unique([user_id, doc_id]) // 一个用户对一篇文档只保留一个会话
+  @@index([doc_id])           // 加速查询某篇文档的会话
+}
 
+// AI 聊天消息表
+// 作用：记录 AI 问答中的单条消息
+model ChatMessage {
+  id         Int      @id @default(autoincrement()) // 消息 ID，主键
+  session_id String                                 // 会话 UUID，对应 ChatSession.session_uuid
+  role       String                                 // 消息角色，例如 user / assistant
+  content    String   @db.Text                      // 消息内容
+  created_at DateTime @default(now())               // 消息创建时间
+
+  session ChatSession @relation(fields: [session_id], references: [session_uuid]) // 关联会话
+
+  @@index([session_id, created_at]) // 加速按会话查询消息历史
+}

@@ -8,8 +8,11 @@ export interface ChatMessage {
 export interface ChatParams {
     model: string
     input: { messages: ChatMessage[] }
-    parameters?: { stream?: boolean }
-    incremental_output?:true
+    parameters?: {
+        stream?: boolean
+        result_format?: 'text' | 'message'
+        incremental_output?: boolean
+    }
 }
 
 //标准化错误

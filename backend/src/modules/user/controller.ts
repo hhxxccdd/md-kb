@@ -1,121 +1,168 @@
-import { Router, Response, Request } from 'express'
-import { hashPassword, comparePasseword } from '../../utils/bcrypt'
-import { generateTokenPair, refreshAccessToken } from './service'
-import { asyncHandler } from '../../utils/asyncHandler'
-import prisma from '../../utils/prisma'
-import { throwBusinessError } from '../../utils/throwError'
-import { getUserAvatar, shouldRefreshAvatar } from '../../utils/getAvatar'
-import { success } from '../../utils/response'
-import { sendEmailCode, emailLogin } from './client'
-import { ApiCode } from '../../utils/types/response'
+import { Router, Response, Request } from "express";
+import { hashPassword, comparePasseword } from "../../utils/bcrypt";
+import {
+  generateTokenPair,
+  refreshAccessToken,
+  getUserNameById,
+} from "./service";
+import { asyncHandler } from "../../utils/asyncHandler";
+import prisma from "../../utils/prisma";
+import { throwBusinessError } from "../../utils/throwError";
+import { getUserAvatar, shouldRefreshAvatar } from "../../utils/getAvatar";
+import { success } from "../../utils/response";
+import { sendEmailCode, emailLogin } from "./client";
+import { ApiCode } from "../../utils/types/response";
+import { authMiddleware } from "./middleware";
 
-const userRouter = Router()
+const userRouter = Router();
 
 // 注册
-userRouter.post('/register', asyncHandler(async (req: Request, res: Response) => {
-    const { username, email, password } = req.body
+userRouter.post(
+  "/register",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { username, email, password } = req.body;
 
     const existUser = await prisma.user.findUnique({
-        where: { username }
-    })
+      where: { username },
+    });
 
     const existEmail = await prisma.user.findUnique({
-        where: { email }
-    })
+      where: { email },
+    });
 
     if (existUser) {
-        throwBusinessError('用户名已存在', 400, ApiCode.UsernameExists)
+      throwBusinessError("用户名已存在", 400, ApiCode.UsernameExists);
     }
     if (existEmail) {
-        throwBusinessError('邮箱已存在', 400, ApiCode.EmailExists)
+      throwBusinessError("邮箱已存在", 400, ApiCode.EmailExists);
     }
 
-    const hashPwd = await hashPassword(password)
+    const hashPwd = await hashPassword(password);
 
     const createdUser = await prisma.user.create({
-        data: { username, email, password_hash: hashPwd, last_login_at: new Date() }
-    })
+      data: {
+        username,
+        email,
+        password_hash: hashPwd,
+        last_login_at: new Date(),
+      },
+    });
 
-    const avatar = getUserAvatar(createdUser.id)
+    const avatar = getUserAvatar(createdUser.id);
     const user = await prisma.user.update({
-        where: { id: createdUser.id },
-        data: { avatar }
-    })
+      where: { id: createdUser.id },
+      data: { avatar },
+    });
 
-    const tokens = await generateTokenPair(user.id)
+    const tokens = await generateTokenPair(user.id);
 
     const data = {
-        user: { id: user.id, username: user.username, email: user.email, avatar: user.avatar },
-        ...tokens
-    }
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        avatar: user.avatar,
+      },
+      ...tokens,
+    };
 
-    success(res, data, '注册成功')
-}))
+    success(res, data, "注册成功");
+  }),
+);
 
 // 发送邮箱验证码
-userRouter.post('/sendEmailCode', asyncHandler(async (req, res) => {
-    const { email } = req.body
+userRouter.post(
+  "/sendEmailCode",
+  asyncHandler(async (req, res) => {
+    const { email } = req.body;
 
     const existEmail = await prisma.user.findUnique({
-        where: { email }
-    })
+      where: { email },
+    });
 
     if (!existEmail) {
-        throwBusinessError('邮箱不存在', 404, ApiCode.UserNotFound)
-        return
+      throwBusinessError("邮箱不存在", 404, ApiCode.UserNotFound);
+      return;
     }
 
-    await sendEmailCode({ email })
-    success(res, {}, '发送成功')
-}))
+    await sendEmailCode({ email });
+    success(res, {}, "发送成功");
+  }),
+);
 
 // 邮箱登录
-userRouter.post('/emailLogin', asyncHandler(async (req, res) => {
-    const { email, code } = req.body
-    const data = await emailLogin({ email, code })
-    success(res, data, '登录成功')
-}))
+userRouter.post(
+  "/emailLogin",
+  asyncHandler(async (req, res) => {
+    const { email, code } = req.body;
+    const data = await emailLogin({ email, code });
+    success(res, data, "登录成功");
+  }),
+);
 
 // 密码登录接口
-userRouter.post('/login', asyncHandler(async (req: Request, res: Response) => {
-    const { username, password } = req.body
+userRouter.post(
+  "/login",
+  asyncHandler(async (req: Request, res: Response) => {
+    const { username, password } = req.body;
 
-    const user = await prisma.user.findUnique({ where: { username } })
+    const user = await prisma.user.findUnique({ where: { username } });
 
     if (!user) {
-        throwBusinessError('用户名不存在', 404, ApiCode.UserNotFound)
-        return
+      throwBusinessError("用户名不存在", 404, ApiCode.UserNotFound);
+      return;
     }
 
-    const valid = await comparePasseword(password, user.password_hash)
+    const valid = await comparePasseword(password, user.password_hash);
 
     if (!valid) {
-        throwBusinessError('密码错误', 401, ApiCode.PasswordIncorrect)
+      throwBusinessError("密码错误", 401, ApiCode.PasswordIncorrect);
     }
 
-    let nextUser = user
+    let nextUser = user;
     if (shouldRefreshAvatar(user.avatar)) {
-        nextUser = await prisma.user.update({
-            where: { id: user.id },
-            data: { avatar: getUserAvatar(user.id) }
-        })
+      nextUser = await prisma.user.update({
+        where: { id: user.id },
+        data: { avatar: getUserAvatar(user.id) },
+      });
     }
 
-    const tokens = await generateTokenPair(nextUser.id)
+    const tokens = await generateTokenPair(nextUser.id);
 
     const data = {
-        user: { id: nextUser.id, username: nextUser.username, email: nextUser.email, avatar: nextUser.avatar },
-        ...tokens
-    }
+      user: {
+        id: nextUser.id,
+        username: nextUser.username,
+        email: nextUser.email,
+        avatar: nextUser.avatar,
+      },
+      ...tokens,
+    };
 
-    success(res, data, '登录成功')
-}))
+    success(res, data, "登录成功");
+  }),
+);
 
 // 刷新 refreshToken
-userRouter.post('/refreshToken', asyncHandler(async (req, res) => {
-    const { refreshToken } = req.body
-    const tokens = await refreshAccessToken(refreshToken)
-    success(res, tokens, '刷新成功')
-}))
+userRouter.post(
+  "/refreshToken",
+  asyncHandler(async (req, res) => {
+    const { refreshToken } = req.body;
+    const tokens = await refreshAccessToken(refreshToken);
+    success(res, tokens, "刷新成功");
+  }),
+);
 
-export default userRouter
+//根据用户id查找用户名
+userRouter.get(
+  "/getUserById/:id",
+  authMiddleware,
+  asyncHandler(async (req, res) => {
+
+       const user  =  await getUserNameById(Number(req.params.id))
+       success(res,user?.username,'获取成功')
+
+  }),
+);
+
+export default userRouter;
