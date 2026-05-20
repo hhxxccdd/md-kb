@@ -17,8 +17,9 @@ import { MdEditor } from 'md-editor-v3';
 import type { ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import type { ExposeParam } from 'md-editor-v3';
+import type { EditorView } from '@codemirror/view';
 import { Emoji, ExportPDF } from '@vavt/v3-extension'
-import { createDocument, getDocumentById, updateDocument, uploadImage } from '../../api/doc';
+import { createDocument, updateDocument, uploadImage } from '../../api/doc';
 // 只导入 Emoji 组件需要的样式
 import "@vavt/v3-extension/lib/asset/Emoji.css";
 import '@vavt/v3-extension/lib/asset/ExportPDF.css';
@@ -36,14 +37,17 @@ const allEmojis = [...componentDefaultEmojis, ...customEmojis]
 
 const title = ref('')
 const editorContent = ref('')
+const settingContent = ref(false)
+
 
 //获取编辑器实例
 const editorRef = ref<ExposeParam>();
 
 //定义Props，接受父组件传值
-const { id, theme } = defineProps<{
+const { id, theme, collabMode} = defineProps<{
     id?: string | number,
     theme?: 'light' | 'dark'
+    collabMode?:boolean
 }>()
 
 //定义Emit(向父组件传值)
@@ -51,6 +55,7 @@ const emit = defineEmits<{
     'update:title': [val: string]
     'update:status': [val: string]
     'update:editorContent': [val: string]
+    'editor-ready': [editorView: EditorView]
 }>()
 
 //将编辑器的方法暴漏给父组件
@@ -67,7 +72,51 @@ defineExpose({
 
         //直接替换响应式变量
         editorContent.value = editorContent.value.replace(selsctedText, replaceText)
+    },
+    setContent: (content:string) => {
+        settingContent.value = true
+        editorContent.value = content
+
+        nextTick(() => {
+            settingContent.value = false
+        })
+    },
+    getContent: () => {
+        return editorContent.value
+    },
+    getEditorView:():EditorView|undefined => {
+         return editorRef.value?.getEditorView()
     }
+})
+
+let editorReadyEmitted = false
+
+const emitEditorReady = () => {
+    if (editorReadyEmitted) return true
+
+    const editorView = editorRef.value?.getEditorView()
+
+    if (!editorView) return false
+
+    editorReadyEmitted = true
+    emit('editor-ready', editorView)
+    return true
+}
+
+onMounted(() => {
+    if (emitEditorReady()) return
+
+    let retryCount = 0
+    const waitEditorReady = () => {
+        if (emitEditorReady()) return
+
+        retryCount += 1
+        if (retryCount < 20) {
+            requestAnimationFrame(waitEditorReady)
+        }
+    }
+
+    requestAnimationFrame(waitEditorReady)
 })
 
 
@@ -147,34 +196,23 @@ const debounceParse = debounce(parseMarkdown, 300)
 const debounceSave = debounce(saveDoc, 800)
 
 
-// ==================== 核心逻辑 ====================
-// 加载文档：读取后端的标题+内容，赋值给子组件本地存储
-const loadDoc = async () => {
-    if (!id) return
-    const res = await getDocumentById(id)
-    // ✅ 存储后端返回的标题
-    title.value = res.data.title
-    editorContent.value = res.data.content ?? ''
-    // 同步给父组件
-    emit('update:title', title.value)
-    emit('update:editorContent', editorContent.value)
-}
 
 // 编辑器内容变化
 watch(editorContent, (newVal) => {
     emit('update:editorContent', newVal)
+     debounceParse(newVal)  // 解析标题
+
+     if(settingContent.value){
+        return
+     }
+
     emit('update:status', '未保存')
-    debounceParse(newVal)  // 解析标题
-    debounceSave()        // 自动保存
+   
+    if(!collabMode){
+       debounceSave()
+    }
 })
 
-// 初始化
-onMounted(async () => {
-    await nextTick()
-    loadDoc()
-})
-// id变化重新加载
-watch(() => id, loadDoc)
 
 </script>
 

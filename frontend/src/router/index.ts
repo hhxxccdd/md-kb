@@ -32,6 +32,14 @@ const routes: Array<RouteRecordRaw> = [
             // 文档管理页需要登录后才能访问。
             requiresAuth: true
         }
+    },
+    {
+        path: '/invite/:token',
+        name: 'invite',
+        component: () => import('../views/InvitePage.vue'),
+        meta: {
+            requiresAuth: true
+        }
     }
 ]
 

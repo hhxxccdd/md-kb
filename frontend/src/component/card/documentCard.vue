@@ -54,23 +54,35 @@ const edit = () => {
 }
 
 const open = async () => {
-  const result = await shareDocument(props.doc.id)
-  if (result.data) {
-    ElMessage.success('已设置为公共文档')
-    emit('refresh')
+  try {
+    const result = await shareDocument(props.doc.id)
+    if (result.data) {
+      ElMessage.success('已设置为公共文档')
+      emit('refresh')
+    }
+  } catch {
+    // request 拦截器已经统一提示错误。
   }
 }
 
 const deleteById = async () => {
-  await deleteDocument(props.doc.id)
-  ElMessage.success('删除成功')
-  emit('refresh')
+  try {
+    await deleteDocument(props.doc.id)
+    ElMessage.success('删除成功')
+    emit('refresh')
+  } catch {
+    // request 拦截器已经统一提示错误。
+  }
 }
 
 
 onMounted(async () => {
-  const res = await getUserNameById(props.doc.owner_user_id)
-  username.value = res.data
+  try {
+    const res = await getUserNameById(props.doc.owner_user_id)
+    username.value = res.data
+  } catch {
+    username.value = ''
+  }
 })
 </script>
 

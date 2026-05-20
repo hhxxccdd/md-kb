@@ -12,6 +12,9 @@ import {
   shareDocument,
   updateDocument,
   searchDocument,
+  createDocumentInvite,
+  getDocumentInviteByToken,
+  acceptDocumentInvite
 } from "./service";
 
 const router = express.Router();
@@ -140,5 +143,32 @@ router.post(
     success(res, { is_shared: true }, "已设为共享文档");
   }),
 );
+
+router.post("/invite/:id",asyncHandler(async (req , res) => {
+
+      const docId = getParamId(req.params.id)
+      const userId = getCurrentUserId(req.user?.id)
+   
+      const result = await createDocumentInvite(docId,userId)
+      
+      success(res,result,"成功生成链接")
+}))
+
+router.get("/invite/:token",asyncHandler(async (req,res) => {
+    const token = String(req.params.token || "").trim();
+
+    const invite = await getDocumentInviteByToken(token);
+
+    success(res, invite, "获取邀请信息成功");
+}))
+
+router.post("/invite/:token/accept",asyncHandler(async (req,res) => {
+    const token = String(req.params.token || "").trim();
+    const userId = getCurrentUserId(req.user?.id);
+
+    const result = await acceptDocumentInvite(token,userId);
+
+    success(res, result, "接受邀请成功");
+}))
 
 export default router;

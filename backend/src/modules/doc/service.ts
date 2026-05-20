@@ -1,5 +1,6 @@
 import prisma from "../../utils/prisma";
 import { throwBusinessError } from "../../utils/throwError";
+import crypto from "crypto";
 
 type CreateDocumentParams = {
   userId: number;
@@ -164,30 +165,189 @@ export const shareDocument = async (id: number, userId: number) => {
 };
 
 export const searchDocument = async (userId: number, keyWord: string) => {
-     return prisma.document.findMany({
-      where:{
-        is_deleted:false,
-        title:{
-          contains: keyWord
+  return prisma.document.findMany({
+    where: {
+      is_deleted: false,
+      title: {
+        contains: keyWord,
+      },
+      OR: [
+        {
+          owner_user_id: userId,
+          is_shared: false,
         },
-        OR: [
-          {
-            owner_user_id:userId,
-            is_shared:false
+        {
+          is_shared: true,
+          collaborators: {
+            some: {
+              user_id: userId,
+            },
           },
-          {
-            is_shared:true,
-            collaborators: {
-              some: {
-                user_id:userId
-              }
-            }
-          }
-        ]
+        },
+      ],
+    },
+    orderBy: {
+      updated_at: "desc",
+    },
+    take: 5,
+  });
+};
+
+export const createDocumentInvite = async (
+  docId: number,
+  inviterUserId: number,
+) => {
+  const doc = await prisma.document.findFirst({
+    where: {
+      id: docId,
+      owner_user_id: inviterUserId,
+      is_deleted: false,
+    },
+  });
+
+  if (!doc) {
+    throwBusinessError("文档不存在或无权邀请", 403);
+  }
+
+  const token = crypto.randomUUID();
+
+  const invite = await prisma.documentInvite.create({
+    data: {
+      document_id: docId,
+      inviter_user_id: inviterUserId,
+      token,
+      status: "PENDING",
+      expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    },
+  });
+
+  return {
+    token: invite.token,
+  };
+};
+
+export const getDocumentInviteByToken = async (token: string) => {
+  if (!token) {
+    throwBusinessError("邀请token不能为空", 400);
+  }
+
+  const invite = await prisma.documentInvite.findUnique({
+    where: { token },
+    include: {
+      document: {
+        select: {
+          id: true,
+          title: true,
+          is_deleted: true,
+        },
       },
-      orderBy:{
-          updated_at:'desc'
+      inviter: {
+        select: {
+          id: true,
+          username: true,
+          avatar: true,
+        },
       },
-      take:5
-     })
+    },
+  });
+
+  if (!invite) {
+    throwBusinessError("邀请不存在", 404);
+    return;
+  }
+
+  if (invite.document.is_deleted) {
+    throwBusinessError("文档已被删除", 404);
+  }
+
+  if (invite.expires_at && invite.expires_at < new Date()) {
+    return {
+      document_id: invite.document_id,
+      title: invite.document.title,
+      inviter: invite.inviter,
+      status: "EXPIRED",
+      expires_at: invite.expires_at,
+    };
+  }
+
+  return {
+    document_id: invite.document_id,
+    title: invite.document.title,
+    inviter: invite.inviter,
+    status: invite.status,
+    expires_at: invite.expires_at,
+  };
+};
+
+export const acceptDocumentInvite = async (token: string, userId: number) => {
+  if (!token) {
+    throwBusinessError("邀请 token 不能为空", 400);
+  }
+
+  const invite = await prisma.documentInvite.findUnique({
+    where: { token },
+    include: {
+      document: {
+        select: {
+          id: true,
+          is_deleted: true,
+        },
+      },
+    },
+  });
+
+  if (!invite) {
+    return throwBusinessError("邀请不存在", 404);
+  }
+
+  if (invite.document.is_deleted) {
+    throwBusinessError("文档已被删除", 404);
+  }
+
+  if (invite.status !== "PENDING") {
+    throwBusinessError("邀请已失效", 400);
+  }
+
+  if (invite.expires_at && invite.expires_at < new Date()) {
+    await prisma.documentInvite.update({
+      where: { id: invite.id },
+      data: {
+        status: "EXPIRED",
+      },
+    });
+    throwBusinessError("邀请已过期", 400);
+  }
+
+  if (invite.invitee_user_id && invite.invitee_user_id !== userId) {
+    throwBusinessError("该邀请不属于当前用户", 403);
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.documentCollaborator.upsert({
+      where: {
+        document_id_user_id: {
+          document_id: invite.document_id,
+          user_id: userId,
+        },
+      },
+      update: {},
+      create: {
+        document_id: invite.document_id,
+        user_id: userId,
+      },
+    });
+
+    await tx.documentInvite.update({
+      where: { id: invite.id },
+      data: {
+        status: "ACCEPTED",
+        invitee_user_id: invite.invitee_user_id ?? userId,
+        accepted_at: new Date(),
+      },
+    });
+  });
+
+  return {
+    document_id: invite.document_id,
+  };
 };

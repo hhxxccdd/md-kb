@@ -20,6 +20,23 @@ export interface DocumentItem {
   updated_at: string;
 }
 
+
+export interface CreateInviteResult {
+   token:string
+}
+
+export interface DocumentInviteDetail {
+  document_id: number;
+  title: string;
+  inviter: DocumentOwner;
+  status: "PENDING" | "ACCEPTED" | "REJECTED" | "EXPIRED" | "CANCELED";
+  expires_at: string | null;
+}
+
+export interface AcceptInviteResult {
+  document_id: number;
+}
+
 export interface SharedDocumentItem extends DocumentItem {
   owner: DocumentOwner;
 }
@@ -100,4 +117,22 @@ export const uploadImage = (
   data: FormData,
 ): Promise<ApiResponse<UploadImageResult>> => {
   return request.post("/upload/image", data);
+};
+
+//获取邀请链接
+export const createDocumentInvite = (id:string|number): Promise<ApiResponse<CreateInviteResult>> => {
+      return request.post(`/doc/invite/${id}`)
+   
+}
+
+export const getDocumentInvite = (
+  token: string,
+): Promise<ApiResponse<DocumentInviteDetail>> => {
+  return request.get(`/doc/invite/${token}`);
+};
+
+export const acceptDocumentInvite = (
+  token: string,
+): Promise<ApiResponse<AcceptInviteResult>> => {
+  return request.post(`/doc/invite/${token}/accept`);
 };

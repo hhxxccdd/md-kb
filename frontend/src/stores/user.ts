@@ -29,27 +29,35 @@ export const useAuthStore = defineStore('auth', () => {
     }
 
     async function login(username: string, password: string) {
-        const res = await loginUser({ username, password })
-        if (res.code === ApiCode.Success) {
-            const { accessToken: access, refreshToken: refresh, user } = res.data
-            persistAuth(access, refresh, user)
+        try {
+            const res = await loginUser({ username, password })
+            if (res.code === ApiCode.Success) {
+                const { accessToken: access, refreshToken: refresh, user } = res.data
+                persistAuth(access, refresh, user)
 
-            ElMessage.success('登录成功')
-            router.push('/')
-        } else {
-            ElMessage.error(res.msg)
+                ElMessage.success('登录成功')
+                router.push('/')
+            } else {
+                ElMessage.error(res.msg)
+            }
+        } catch {
+            // request 拦截器已经统一提示错误，这里只负责吞掉已处理的业务失败。
         }
     }
 
     async function emailLogin(email: string, code: string) {
-        const res = await emailLoginUser({ email, code })
-        if (res.code === ApiCode.Success) {
-            const { accessToken: access, refreshToken: refresh, user } = res.data
-            persistAuth(access, refresh, user)
-            ElMessage.success('登录成功')
-            router.push('/')
-        } else {
-            ElMessage.error(res.msg)
+        try {
+            const res = await emailLoginUser({ email, code })
+            if (res.code === ApiCode.Success) {
+                const { accessToken: access, refreshToken: refresh, user } = res.data
+                persistAuth(access, refresh, user)
+                ElMessage.success('登录成功')
+                router.push('/')
+            } else {
+                ElMessage.error(res.msg)
+            }
+        } catch {
+            // request 拦截器已经统一提示错误，这里只负责吞掉已处理的业务失败。
         }
     }
 

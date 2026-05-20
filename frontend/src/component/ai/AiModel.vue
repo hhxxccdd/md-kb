@@ -117,12 +117,16 @@ watch(() => props.visible, async (val) => {
     //问答功能
     if (props.mode === 'answerDoc') {
       //获取上下文id
-      const params = { user_id: userId, doc_id: docId.value }
-      const sessionId = await getSessionId(params)
-      session_id.value = sessionId.data
-      //获取上下文
-      const list: ChatMessage[] = (await getContext(session_id.value)).data
-      chatList.value = list
+      try {
+        const params = { user_id: userId, doc_id: docId.value }
+        const sessionId = await getSessionId(params)
+        session_id.value = sessionId.data
+        //获取上下文
+        const list: ChatMessage[] = (await getContext(session_id.value)).data
+        chatList.value = list
+      } catch {
+        closeModal()
+      }
     }
   }
 })
@@ -132,19 +136,24 @@ watch(() => props.visible, async (val) => {
 // ==============================================
 const handleCommonFeature = async (Lang?: string) => {
   loading.value = true
-  await aiStream(
-    featureConfig.value.url,
-    {
-      content: props.text,
-      targetLang: Lang
-    },
-    (data) => {
-      if (data.status === 'loading' && data.content) {
-        aiResult.value += data.content
+  try {
+    await aiStream(
+      featureConfig.value.url,
+      {
+        content: props.text,
+        targetLang: Lang
+      },
+      (data) => {
+        if (data.status === 'loading' && data.content) {
+          aiResult.value += data.content
+        }
       }
-    }
-  )
-  loading.value = false
+    )
+  } catch {
+    ElMessage.error('AI 请求失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 // ==============================================
@@ -170,41 +179,46 @@ const sendQuestion = async () => {
     content: userMsg
   }
 
-  //保存AI聊天记录
-  await saveMessage(message)
+  try {
+    //保存AI聊天记录
+    await saveMessage(message)
 
 
-  let aiAnswer = ''
-  await aiStream(
-    featureConfig.value.url,
-    {
-      question: userMsg,
-      docContent: props.documentContext || '',
-      historyMessages: chatList.value
+    let aiAnswer = ''
+    await aiStream(
+      featureConfig.value.url,
+      {
+        question: userMsg,
+        docContent: props.documentContext || '',
+        historyMessages: chatList.value
 
-    },
-    (data) => {
-      if (data.status === 'loading' && data.content) {
-        aiAnswer += data.content
-        // 实时更新对话
-        chatList.value[chatList.value.length - 1] = { role: 'ai', content: aiAnswer }
-        //实时跳转
-        scrollToBottom()
+      },
+      (data) => {
+        if (data.status === 'loading' && data.content) {
+          aiAnswer += data.content
+          // 实时更新对话
+          chatList.value[chatList.value.length - 1] = { role: 'ai', content: aiAnswer }
+          //实时跳转
+          scrollToBottom()
+        }
+        if (data.status === 'error') {
+          chatList.value[chatList.value.length - 1] = { role: 'ai', content: data.content || 'AI 请求失败' }
+        }
       }
-      if (data.status === 'error') {
-        chatList.value[chatList.value.length - 1] = { role: 'ai', content: data.content || 'AI 请求失败' }
-      }
+    )
+    if (!aiAnswer) return
+    message = {
+      session_id: session_id.value as string,
+      role: 'ai',
+      content: aiAnswer
     }
-  )
-  loading.value = false
-  if (!aiAnswer) return
-  message = {
-    session_id: session_id.value as string,
-    role: 'ai',
-    content: aiAnswer
-  }
 
-  await saveMessage(message)
+    await saveMessage(message)
+  } catch {
+    chatList.value[chatList.value.length - 1] = { role: 'ai', content: '请求失败，请稍后重试' }
+  } finally {
+    loading.value = false
+  }
 }
 
 

@@ -102,14 +102,18 @@ const querySearch = (queryString:string, cb:(results:SearchSuggestion[]) => void
           return 
         }
 
-        const res = await searchDocuments(keyWord)
+        try {
+          const res = await searchDocuments(keyWord)
 
-        cb(
-          res.data.map((doc) => ({
-               value: doc.title,
-               doc
-          }))
-        )
+          cb(
+            res.data.map((doc) => ({
+                 value: doc.title,
+                 doc
+            }))
+          )
+        } catch {
+          cb([])
+        }
      })
 }
 
@@ -132,11 +136,15 @@ const currentDocs = computed(() => {
 
 const loadDocuments = async () => {
 //根据id查询私有文档与公开文档
-   const privateRes = await getPrivateDocuments()
-   privateDocuments.value = privateRes.data
+   try {
+      const privateRes = await getPrivateDocuments()
+      privateDocuments.value = privateRes.data
 
-   const shareRes = await getSharedDocuments()
-   sharedDocuments.value = shareRes.data
+      const shareRes = await getSharedDocuments()
+      sharedDocuments.value = shareRes.data
+   } catch {
+      // request 拦截器已经统一提示错误。
+   }
 }
 
 

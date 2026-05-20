@@ -96,11 +96,15 @@ const code = ref<string>('')
 const getCode = async () => {
     if (countdown.value > 0) return
 
-    const res = await sendEmailCode({ email: email.value })
-    if (res.code === ApiCode.Success) {
-        ElMessage.success('验证码发送成功')
-    } else {
-        ElMessage.error(res.msg)
+    try {
+        const res = await sendEmailCode({ email: email.value })
+        if (res.code === ApiCode.Success) {
+            ElMessage.success('验证码发送成功')
+        } else {
+            ElMessage.error(res.msg)
+            return
+        }
+    } catch {
         return
     }
 
@@ -120,21 +124,33 @@ const register = async () => {
         password: password.value,
         email: email.value
     }
-    const res = await registerUser(data)
-    if (res.code === ApiCode.Success) {
-        ElMessage.success('注册成功')
-        mode.value = 'login'
-    } else {
-        ElMessage.error(res.msg)
+    try {
+        const res = await registerUser(data)
+        if (res.code === ApiCode.Success) {
+            ElMessage.success('注册成功')
+            mode.value = 'login'
+        } else {
+            ElMessage.error(res.msg)
+        }
+    } catch {
+        // request 拦截器已经统一提示错误。
     }
 }
 
 const login = async () => {
-    await useAuthStore().login(username.value, password.value)
+    try {
+        await useAuthStore().login(username.value, password.value)
+    } catch {
+        // store/request 已处理错误。
+    }
 }
 
 const emailLogin = async () => {
-    await useAuthStore().emailLogin(email.value, code.value)
+    try {
+        await useAuthStore().emailLogin(email.value, code.value)
+    } catch {
+        // store/request 已处理错误。
+    }
 }
 
 
