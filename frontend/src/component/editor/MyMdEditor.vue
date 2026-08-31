@@ -12,19 +12,18 @@
 
 <script setup lang="ts">
 import { nextTick, onMounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router';
+
 import { MdEditor } from 'md-editor-v3';
 import type { ToolbarNames } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
 import type { ExposeParam } from 'md-editor-v3';
 import type { EditorView } from '@codemirror/view';
 import { Emoji, ExportPDF } from '@vavt/v3-extension'
-import { createDocument, updateDocument, uploadImage } from '../../api/doc';
+import { uploadImage } from '../../api/doc';
 // 只导入 Emoji 组件需要的样式
 import "@vavt/v3-extension/lib/asset/Emoji.css";
 import '@vavt/v3-extension/lib/asset/ExportPDF.css';
 
-const router = useRouter()
 const mybars: ToolbarNames[] = ['bold', 'code', 'image', 'mermaid', 'katex', 'fullscreen', '-', 0, 1]; // 你的固定配置
 //自定义表情包
 const customEmojis = [
@@ -44,16 +43,11 @@ const settingContent = ref(false)
 const editorRef = ref<ExposeParam>();
 
 //定义Props，接受父组件传值
-const { id, theme, collabMode} = defineProps<{
-    id?: string | number,
-    theme?: 'light' | 'dark'
-    collabMode?:boolean
-}>()
+const {theme} = defineProps<{theme?: 'light' | 'dark' }>()
 
 //定义Emit(向父组件传值)
 const emit = defineEmits<{
     'update:title': [val: string]
-    'update:status': [val: string]
     'update:editorContent': [val: string]
     'editor-ready': [editorView: EditorView]
 }>()
@@ -143,29 +137,6 @@ const parseMarkdown = (text: string) => {
     emit('update:title', title.value)
 }
 
-// 4. 自动保存：提交【本地存储的标题】到后端
-const saveDoc = async () => {
-    if (!editorContent.value) return
-    try {
-        if (id) {
-            // ✅ 保存时提交子组件存储的 title，不再是空！
-            await updateDocument(id, {
-                title: title.value,
-                content: editorContent.value
-            })
-        } else {
-            const res = await createDocument({
-                title: title.value,
-                content: editorContent.value
-            })
-            router.push(`/edit/${res.data.id}`)
-        }
-        emit('update:status', '已保存')
-    } catch (err) {
-        emit('update:status', '保存失败')
-        console.error(err)
-    }
-}
 
 const handleUploadImg = async (files: File[], callBack: (urls: string[]) => void) => {
     const file = files[0]
@@ -193,24 +164,12 @@ const handleUploadImg = async (files: File[], callBack: (urls: string[]) => void
 
 // 防抖
 const debounceParse = debounce(parseMarkdown, 300)
-const debounceSave = debounce(saveDoc, 800)
-
 
 
 // 编辑器内容变化
 watch(editorContent, (newVal) => {
     emit('update:editorContent', newVal)
-     debounceParse(newVal)  // 解析标题
-
-     if(settingContent.value){
-        return
-     }
-
-    emit('update:status', '未保存')
-   
-    if(!collabMode){
-       debounceSave()
-    }
+    debounceParse(newVal)  // 解析标题
 })
 
 

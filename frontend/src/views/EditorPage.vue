@@ -38,7 +38,7 @@
         </div>
         <div class="editor-container">
             <!-- 在模板中使用组件，用v-model绑定内容 -->
-            <MyMdEditor ref="myMdEditorRef" :id="id"  :collab-mode="Boolean(id)" @update:title="title = $event" @update:status="status = $event"
+            <MyMdEditor ref="myMdEditorRef"  :key="id ?? 'new-document'"  @update:title="title = $event"
                 @editor-ready="handleEditorReady"
                 theme="light" @update:editor-content="handleEditorContentChange">
             </MyMdEditor>
@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref,onMounted,onBeforeUnmount,watch } from 'vue'
+import { computed, ref,onBeforeUnmount,watch,type WatchStopHandle } from 'vue'
 import { useRoute,useRouter } from 'vue-router'
 import MyMdEditor from '../component/editor/MyMdEditor.vue';
 //引入Store
@@ -61,8 +61,7 @@ import { useAuthStore } from '../stores/user';
 //引入elementplus图标样式
 import { Back } from '@element-plus/icons-vue'
 import AiModel from '../component/ai/AiModel.vue';
-import { getDocumentById } from '../api';
-import { createDocumentInvite, type DocumentItem } from '../api';
+import { createDocument,createDocumentInvite,getDocumentById,updateDocument,type DocumentItem } from '../api';
 import { ElMessage } from 'element-plus';
 import { UseCollabSocket } from '../composables/useCollabSocket';
 import { useYjsMarkdown } from '../composables/useYjsMarkdown';
@@ -71,23 +70,42 @@ import type { EditorView } from '@codemirror/view';
 import type { OnlineUser } from '../type/collab'
 
 
+type DocumentLifecycle =
+     | 'draft'                    //未创建，本地草稿
+     | 'creating'                 //创建请求进行中
+     | 'initializing-collab'      //已有id，协同资源准备中
+     | 'collaborating'            // WebSocket/Yjs已可用
+     | 'create-failed'            //创建失败，草稿保留并允许重试
 
+//1.页面依赖：路由，登录用户
 const userInfo = useAuthStore().userInfo
 const route = useRoute()
 const router = useRouter()
 
+//2.当前文档的业务状态
 const id = computed(() => route.params.id as string | undefined)
+const documentLifecycle = ref<DocumentLifecycle>('draft')
 const title = ref<string>('')
-const status = ref<string>('')
 const editorContent = ref<string>('')
+let   draftRevision = 0
+let   createTimer:ReturnType<typeof setTimeout> | undefined
 const doc = ref<DocumentItem>()
-const onlineUsers = ref<OnlineUser[]>([])
-let collab: ReturnType<typeof UseCollabSocket> | null = null
-let yjsMarkdown: ReturnType<typeof useYjsMarkdown> | null = null
-const editorView = ref<EditorView>()
 const initialDocumentContent = ref<string>()
+
+//3.页面展示状态
+const status = ref<string>('')
+const onlineUsers = ref<OnlineUser[]>([])
+
+//4.编辑器与协同资源句柄
 //获取封装组件myMdEditor实例
 const myMdEditorRef = ref<typeof MyMdEditor>()
+const editorView = ref<EditorView>()
+
+let collab: ReturnType<typeof UseCollabSocket> | null = null
+let yjsMarkdown: ReturnType<typeof useYjsMarkdown> | null = null
+let stopOnlineUsersWatch:WatchStopHandle | undefined
+let stopCollabConnectedWatch:WatchStopHandle | undefined
+
 
 const initDocumentCollab = (_initialContent:string, view: EditorView) => {
      if(!id.value || collab) return
@@ -97,6 +115,7 @@ const initDocumentCollab = (_initialContent:string, view: EditorView) => {
      yjsMarkdown = useYjsMarkdown({
         initialContent: '',
         onLocalUpdate:(update) => {
+            status.value = '未保存'
             collab?.sendYUpdate(update)
         }
      })
@@ -127,7 +146,7 @@ const initDocumentCollab = (_initialContent:string, view: EditorView) => {
      })
 
       // 2. 在线用户逻辑继续保留
-     watch(
+     stopOnlineUsersWatch = watch(
          collab.onlineUsers,
          (users) => {
                 onlineUsers.value = users
@@ -135,7 +154,16 @@ const initDocumentCollab = (_initialContent:string, view: EditorView) => {
          { immediate: true },
      )
 
-    
+     stopCollabConnectedWatch = watch(
+        collab.connected,
+        (isConnected) => {
+            if(isConnected){
+                 documentLifecycle.value = 'collaborating'
+            }
+        },
+        {immediate:true}
+     )
+
      collab.connect()
 }
 
@@ -153,8 +181,83 @@ const handleEditorReady = (view: EditorView) => {
 const handleEditorContentChange = (content: string) => {
   editorContent.value = content
 
-  // 保存仍然发完整内容，但不再拿它做实时广播
+  if(documentLifecycle.value === 'draft' || documentLifecycle.value === 'creating'){
+             draftRevision +=1
+  }
+
+  if(documentLifecycle.value === 'draft'){
+    status.value = '未保存'
+    scheduleDraftCreation()
+  }
+
+
 }
+
+const extractDocumentTitle = (content:string) => {
+     const firstline = content.split('\n')[0]?.trim() ?? ''
+
+     if(!firstline)  return '未命名文档'
+
+     return firstline.startsWith('# ') ? firstline.slice(2).trim() || '未命名文档' : firstline
+}
+
+//防抖
+const cancelScheduleCreation = () => {
+    if(!createTimer)  return
+    clearTimeout(createTimer)
+    createTimer = undefined
+}
+
+
+const createDraftDocument = async() => {
+
+    if(documentLifecycle.value !== 'draft') return
+
+    const contentAtCreation = editorContent.value
+    const revisionAtCreation = draftRevision
+
+    if(!contentAtCreation.trim()) return
+
+    documentLifecycle.value = 'creating'
+    status.value = '保存中'
+
+    try {
+        const result = await createDocument({
+            title: extractDocumentTitle(contentAtCreation),
+            content: contentAtCreation
+        })
+
+        //创建请求期间用户继续输入时，补写最新内容
+        if(draftRevision !== revisionAtCreation){
+            await updateDocument(result.data.id, {
+                 title:extractDocumentTitle(editorContent.value),
+                 content:editorContent.value
+            })
+        }
+        status.value = '已保存'
+        documentLifecycle.value = 'initializing-collab'
+        await router.replace(`/edit/${result.data.id}`)
+    }catch {
+         documentLifecycle.value = 'create-failed'
+         status.value = '保存失败'
+    }
+
+}
+
+
+const scheduleDraftCreation = () => {
+    if(documentLifecycle.value !== 'draft') return
+
+    cancelScheduleCreation()
+
+    createTimer = setTimeout(() => {
+        createTimer = undefined
+        void createDraftDocument()
+    },800)
+
+}
+
+
 
 
 
@@ -230,7 +333,7 @@ const copyInviteLink = async () => {
       const res = await createDocumentInvite(Number(id.value))
 
       const token = res.data.token
-  
+
       const inviteUrl = `${window.location.origin}/invite/${token}`
 
       await navigator.clipboard.writeText(inviteUrl)
@@ -241,24 +344,61 @@ const copyInviteLink = async () => {
    }
 }
 
+const loadDocument = async (docId: string) => {
+    try {
+        const res = await getDocumentById(Number(docId))
 
-onMounted(async () => {
-   if (!id.value) return
-   try {
-      const res = await getDocumentById(Number(id.value))
-      doc.value = res.data
+        doc.value = res.data
+        initialDocumentContent.value = res.data.content ?? ''
+        tryInitDocumentCollab()
+    }catch{
 
-      initialDocumentContent.value = res.data.content ?? ""
-      tryInitDocumentCollab()
-   } catch {
-      // request 拦截器已经统一提示错误。
-   }
-})
+    }
+}
+
+//抽出来销毁状态的逻辑
+const disposeDocumentCollab = () => {
+    cancelScheduleCreation()
+
+    stopOnlineUsersWatch?.()
+    stopOnlineUsersWatch = undefined
+
+    stopCollabConnectedWatch?.()
+    stopCollabConnectedWatch = undefined
+
+    collab?.close()
+    collab = null
+
+    yjsMarkdown?.destroy()
+    yjsMarkdown = null
+
+    onlineUsers.value = []
+    editorView.value = undefined
+}
+
+
+ watch(id,(docId,previousDocId) => {
+    cancelScheduleCreation()
+    if(docId === previousDocId) return
+
+    disposeDocumentCollab()
+
+    initialDocumentContent.value = undefined
+    doc.value = undefined
+
+    documentLifecycle.value = docId ? 'initializing-collab' :'draft'
+
+    if(!docId) return
+
+    void loadDocument(docId)
+},{immediate:true})
+
+
 
 
 onBeforeUnmount(() => {
-    collab?.close()
-    yjsMarkdown?.destroy()
+    cancelScheduleCreation()
+     disposeDocumentCollab()
 })
 
 </script>
