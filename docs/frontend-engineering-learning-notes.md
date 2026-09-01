@@ -366,3 +366,214 @@ documentApi
 ### 面试表达参考
 
 > 我在协同编辑器重构中发现，新建文档流程被拆在编辑器子组件和页面组件中：子组件创建文档并跳转，页面组件负责协同初始化。这使得异步创建、路由变化和保存模式切换缺少统一的状态归属。我将创建与协同状态收敛到页面层的文档生命周期中，编辑器组件只向上发出内容变化事件。这样可以控制创建请求单飞、明确失败恢复路径，也让 WebSocket/Yjs 的资源清理有唯一责任方。
+
+## 协同 composable：三个运行时流程与代码对应
+
+`useDocumentCollaboration` 把 Yjs、WebSocket、在线用户监听和资源销毁从 `EditorPage` 中抽离。页面只决定“何时初始化/销毁”以及“事件发生后页面状态如何变化”。
+
+### 1. 打开已有文档并建立协同
+
+页面同时依赖两项条件：HTTP 文档请求完成，以及 `MyMdEditor` 已创建 CodeMirror 的 `EditorView`。
+
+```ts
+// EditorPage.vue：HTTP 请求成功后标记文档信息已准备，并尝试初始化。
+const loadDocument = async (docId: string) => {
+  const res = await getDocumentById(Number(docId))
+  doc.value = res.data
+  initialDocumentContent.value = res.data.content ?? ''
+  tryInitializeDocumentCollaboration()
+}
+
+// EditorPage.vue：编辑器就绪时保存 EditorView，并再次尝试初始化。
+const handleEditorReady = (view: EditorView) => {
+  editorView.value = view
+  tryInitializeDocumentCollaboration()
+}
+
+// 只有两个条件同时满足才进入协同初始化。
+const tryInitializeDocumentCollaboration = () => {
+  const documentId = id.value
+
+  if (!documentId || !editorView.value || initialDocumentContent.value === undefined) {
+    return
+  }
+
+  initializeDocumentCollaboration(documentId, editorView.value)
+}
+```
+
+真正的底层初始化位于 composable：
+
+```ts
+// useDocumentCollaboration.ts
+const initialize = (documentId: string, view: EditorView) => {
+  if (collab) return // 同一实例不重复初始化
+
+  yjsMarkdown = useYjsMarkdown({
+    initialContent: '',
+    onLocalUpdate: (update) => {
+      options.onLocalChange()
+      collab?.sendYUpdate(update)
+    },
+  })
+
+  view.dispatch({
+    effects: StateEffect.appendConfig.of(yjsMarkdown.collabExtension),
+  })
+
+  collab = UseCollabSocket({
+    docId: documentId,
+    onYUpdate: (update) => yjsMarkdown?.applyRemoteUpdate(update),
+    onSaved: options.onSaved,
+    onRecoonect: options.onReconnected,
+  })
+
+  collab.connect()
+}
+```
+
+这里传入空 `initialContent` 是有意为之：协同内容的权威来源是服务端的 `y-sync` 消息，而不是 HTTP 响应内容。HTTP 请求目前承担权限校验、元数据获取和初始化时机门槛的作用。
+
+```ts
+// EditorPage.vue：连接成功后，页面根据 composable 的事件进入协同状态。
+onConnected: () => {
+  documentLifecycle.value = 'collaborating'
+}
+```
+
+### 2. 本地编辑到“已保存”
+
+```ts
+// useYjsMarkdown.ts：本地编辑会产生 Yjs update。
+ydoc.on('update', (update, origin) => {
+  if (origin === 'init' || origin === 'remote') return
+  options.onLocalUpdate?.(Array.from(update))
+})
+```
+
+```ts
+// useDocumentCollaboration.ts：页面先显示未保存，再将更新发到协同服务。
+onLocalUpdate: (update) => {
+  options.onLocalChange()
+  collab?.sendYUpdate(update)
+}
+
+// EditorPage.vue：页面对业务状态作出响应。
+onLocalChange: () => {
+  status.value = '未保存'
+}
+```
+
+服务端完成持久化后发送 `saved` 消息，WebSocket 封装会调用 `onSaved`：
+
+```ts
+// EditorPage.vue
+onSaved: () => {
+  status.value = '已保存'
+}
+```
+
+因此“已保存”不是刚发送 WebSocket 时就显示，而是后端确认已落库后才显示。
+
+### 补充：`MyMdEditor` 的内容为什么会进入 Yjs？
+
+这里有两条并行但用途不同的数据通道，不能混为一谈：
+
+```text
+通道 A：页面业务数据
+MyMdEditor 的 editorContent
+→ emit('update:editorContent', content)
+→ EditorPage.handleEditorContentChange
+→ 新建文档、防抖创建、导出、AI 上下文等页面业务
+
+通道 B：协同编辑数据
+CodeMirror 编辑事务
+→ yCollab(ytext, awareness) 扩展
+→ Y.Text
+→ Y.Doc update
+→ WebSocket y-update
+```
+
+`@update:editorContent` 不负责把文本发送给 Yjs。页面拿到 `EditorView` 后，把 Yjs 的 CodeMirror 扩展挂载到同一个编辑器实例：
+
+```ts
+// useDocumentCollaboration.ts
+yjsMarkdown = useYjsMarkdown({
+  initialContent: '',
+  onLocalUpdate: (update) => {
+    options.onLocalChange()
+    collab?.sendYUpdate(update)
+  },
+})
+
+view.dispatch({
+  effects: StateEffect.appendConfig.of(yjsMarkdown.collabExtension),
+})
+```
+
+`collabExtension` 的实际来源是：
+
+```ts
+// useYjsMarkdown.ts
+const collabExtension = yCollab(ytext, awareness)
+```
+
+`yCollab` 是 CodeMirror 与 `Y.Text` 的双向绑定：用户在 CodeMirror 输入时，扩展将编辑事务写入 `Y.Text`；`Y.Text` 变化会触发 `Y.Doc` 的 `update` 事件；本地 update 再被发送到 WebSocket。
+
+```text
+用户在 MyMdEditor 内部的 CodeMirror 输入
+↓
+CodeMirror transaction
+↓
+yCollab 扩展写入 Y.Text
+↓
+ydoc.on('update') 识别为本地更新
+↓
+onLocalUpdate(update)
+↓
+collab.sendYUpdate(update)
+```
+
+反方向也成立：服务端发送 `y-update` 后，`applyRemoteUpdate` 写入 `Y.Doc`，`yCollab` 自动把变化反映到 CodeMirror。远端更新使用 `origin: 'remote'`，所以不会再次发回 WebSocket，避免回声循环。
+
+### 3. 切换文档或离开页面时释放资源
+
+```ts
+// EditorPage.vue：路由 id 改变时，先取消草稿创建并释放旧协同资源。
+watch(id, (docId, previousDocId) => {
+  cancelScheduleCreation()
+  if (docId === previousDocId) return
+
+  resetDocumentCollaboration()
+  editorView.value = undefined
+
+  // 然后才加载新文档并初始化新协同连接。
+  if (docId) void loadDocument(docId)
+}, { immediate: true })
+
+onBeforeUnmount(() => {
+  cancelScheduleCreation()
+  resetDocumentCollaboration()
+})
+```
+
+```ts
+// useDocumentCollaboration.ts：真正的资源释放与创建顺序相反。
+const dispose = () => {
+  stopOnlineUsersWatch?.()
+  stopOnlineUsersWatch = undefined
+
+  stopConnectedWatch?.()
+  stopConnectedWatch = undefined
+
+  collab?.close()
+  collab = null
+
+  yjsMarkdown?.destroy()
+  yjsMarkdown = null
+
+  onlineUsers.value = []
+}
+```
+
+资源不只会在组件卸载时失效。`/edit/123` 切到 `/edit/456` 时，Vue Router 可能复用同一个 `EditorPage` 实例，因此必须在路由 id 变化时主动调用 `dispose()`，不能只依赖 `onBeforeUnmount`。
