@@ -53,7 +53,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref,onBeforeUnmount,watch,type WatchStopHandle } from 'vue'
+import { computed, ref,onBeforeUnmount,watch } from 'vue'
 import { useRoute,useRouter } from 'vue-router'
 import MyMdEditor from '../component/editor/MyMdEditor.vue';
 //引入Store
@@ -63,11 +63,9 @@ import { Back } from '@element-plus/icons-vue'
 import AiModel from '../component/ai/AiModel.vue';
 import { createDocument,createDocumentInvite,getDocumentById,updateDocument,type DocumentItem } from '../api';
 import { ElMessage } from 'element-plus';
-import { UseCollabSocket } from '../composables/useCollabSocket';
-import { useYjsMarkdown } from '../composables/useYjsMarkdown';
-import { StateEffect } from '@codemirror/state';
+import { useDocumentCollaboration } from '../composables/useDocumentCollaboration';
 import type { EditorView } from '@codemirror/view';
-import type { OnlineUser } from '../type/collab'
+
 
 
 type DocumentLifecycle =
@@ -94,87 +92,44 @@ const initialDocumentContent = ref<string>()
 
 //3.页面展示状态
 const status = ref<string>('')
-const onlineUsers = ref<OnlineUser[]>([])
 
 //4.编辑器与协同资源句柄
 //获取封装组件myMdEditor实例
 const myMdEditorRef = ref<typeof MyMdEditor>()
 const editorView = ref<EditorView>()
 
-let collab: ReturnType<typeof UseCollabSocket> | null = null
-let yjsMarkdown: ReturnType<typeof useYjsMarkdown> | null = null
-let stopOnlineUsersWatch:WatchStopHandle | undefined
-let stopCollabConnectedWatch:WatchStopHandle | undefined
+
+const {onlineUsers,initialize: initializeDocumentCollaboration,dispose: disposeDocumentCollaboration} = useDocumentCollaboration({
+     onLocalChange: () => {
+        status.value = '未保存'
+     },
+     onSaved: () => {
+        status.value = '已保存'
+     },
+     onConnected: () => {
+        documentLifecycle.value = 'collaborating'
+     },
+     onReconnected: () => {
+        window.location.reload()
+     }
+})
 
 
-const initDocumentCollab = (_initialContent:string, view: EditorView) => {
-     if(!id.value || collab) return
 
 
-     //创建Yjs层
-     yjsMarkdown = useYjsMarkdown({
-        initialContent: '',
-        onLocalUpdate:(update) => {
-            status.value = '未保存'
-            collab?.sendYUpdate(update)
-        }
-     })
+const tryInitializeDocumentCollaboration = () => {
+     const documentId = id.value
 
-     //把yjs协同扩展挂到CodeMirror上
-     view.dispatch({
-        effects:StateEffect.appendConfig.of(
-             yjsMarkdown.collabExtension
-        )
-     })
+     if(!documentId || !editorView.value || initialDocumentContent.value === undefined) return
+
+     initializeDocumentCollaboration(documentId,editorView.value)
 
 
-     //创建WebSocket层
-     collab = UseCollabSocket({
-        docId: id.value,
-
-        onYUpdate:(update) => {
-             yjsMarkdown?.applyRemoteUpdate(update)
-        },
-
-        onSaved:() => {
-             status.value = '已保存'
-        },
-
-        onRecoonect:() => {
-            window.location.reload()
-        }
-     })
-
-      // 2. 在线用户逻辑继续保留
-     stopOnlineUsersWatch = watch(
-         collab.onlineUsers,
-         (users) => {
-                onlineUsers.value = users
-                    },
-         { immediate: true },
-     )
-
-     stopCollabConnectedWatch = watch(
-        collab.connected,
-        (isConnected) => {
-            if(isConnected){
-                 documentLifecycle.value = 'collaborating'
-            }
-        },
-        {immediate:true}
-     )
-
-     collab.connect()
-}
-
-const tryInitDocumentCollab = () => {
-    if (!editorView.value || initialDocumentContent.value === undefined) return
-    initDocumentCollab(initialDocumentContent.value, editorView.value)
 }
 
 const handleEditorReady = (view: EditorView) => {
     editorView.value = view
-    tryInitDocumentCollab()
+    tryInitializeDocumentCollaboration()
 }
 
 
@@ -244,7 +199,6 @@ const createDraftDocument = async() => {
 
 }
 
-
 const scheduleDraftCreation = () => {
     if(documentLifecycle.value !== 'draft') return
 
@@ -256,10 +210,6 @@ const scheduleDraftCreation = () => {
     },800)
 
 }
-
-
-
-
 
 //AI弹窗实例
 const modalVisible = ref<boolean>(false)
@@ -350,29 +300,14 @@ const loadDocument = async (docId: string) => {
 
         doc.value = res.data
         initialDocumentContent.value = res.data.content ?? ''
-        tryInitDocumentCollab()
+        tryInitializeDocumentCollaboration()
     }catch{
 
     }
 }
 
-//抽出来销毁状态的逻辑
-const disposeDocumentCollab = () => {
-    cancelScheduleCreation()
-
-    stopOnlineUsersWatch?.()
-    stopOnlineUsersWatch = undefined
-
-    stopCollabConnectedWatch?.()
-    stopCollabConnectedWatch = undefined
-
-    collab?.close()
-    collab = null
-
-    yjsMarkdown?.destroy()
-    yjsMarkdown = null
-
-    onlineUsers.value = []
+const resetDocumentCollaboration = () => {
+    disposeDocumentCollaboration()
     editorView.value = undefined
 }
 
@@ -381,7 +316,7 @@ const disposeDocumentCollab = () => {
     cancelScheduleCreation()
     if(docId === previousDocId) return
 
-    disposeDocumentCollab()
+    resetDocumentCollaboration()
 
     initialDocumentContent.value = undefined
     doc.value = undefined
@@ -398,7 +333,7 @@ const disposeDocumentCollab = () => {
 
 onBeforeUnmount(() => {
     cancelScheduleCreation()
-     disposeDocumentCollab()
+    resetDocumentCollaboration()
 })
 
 </script>
