@@ -1,41 +1,7 @@
 <template>
     <div class="editor">
-        <div class="editor-head">
-            <div class="editor-head-left">
-                <div class="back" @click="router.push('/')">
-                    <el-icon size="24">
-                        <Back />
-                    </el-icon>
-                </div>
-                <div class="editor-head-text">
-                    <p> {{ title }}</p>
-                </div>
-                <div class="editor-head-status"> {{ status }} </div>
-            </div>
-            <div class="editor-head-right">
-                <div class="editor-head-right-ai">
-                    <!-- 'polish' | 'translate' | 'toc' | 'codeOpt' | 'qa' -->
-                    <el-button type="primary" @click="openAiModal('polish')" dashed>AI润色</el-button>
-                    <el-button type="primary" @click="openAiModal('translate')" dashed>AI翻译</el-button>
-                    <el-button type="primary" @click="openAiModal('answerDoc')" dashed>文档问答</el-button>
-                    <el-button type="primary"  @click="exportMarkdown" dashed>导出</el-button>
-                </div>
-                <div class="editor-head-right-func">
-                     <el-avatar
-                           v-for="user in onlineUsers"
-                          :key="user.id"
-                          :size="28"
-                          :src="user.avatar || undefined"
-                          :title="user.username"
-                     >
-                       {{ user.username.slice(0, 1) }}
-                    </el-avatar>
-                     <div class="share" v-if="doc?.is_shared">
-                        <el-button type="primary" @click="copyInviteLink"  v-show="doc.owner_user_id === userInfo?.id">邀请协作</el-button>
-                    </div>
-                </div>
-            </div>
-        </div>
+        <EditorHeader :title="title" :status="status" :online-users="onlineUsers" :can-invite="canInvite" @back="router.push('/')" @ai-action="openAiModal"
+        @export="exportMarkdown" @invite="copyInviteLink"></EditorHeader>
         <div class="editor-container">
             <!-- 在模板中使用组件，用v-model绑定内容 -->
             <MyMdEditor ref="myMdEditorRef"  :key="id ?? 'new-document'"  @update:title="title = $event"
@@ -55,11 +21,10 @@
 <script setup lang="ts">
 import { computed, ref,onBeforeUnmount,watch } from 'vue'
 import { useRoute,useRouter } from 'vue-router'
+import EditorHeader from '../component/editor/EditorHeader.vue';
 import MyMdEditor from '../component/editor/MyMdEditor.vue';
 //引入Store
 import { useAuthStore } from '../stores/user';
-//引入elementplus图标样式
-import { Back } from '@element-plus/icons-vue'
 import AiModel from '../component/ai/AiModel.vue';
 import { createDocumentInvite,getDocumentById,type DocumentItem} from '../api';
 import { ElMessage } from 'element-plus';
@@ -67,12 +32,13 @@ import { useDocumentCollaboration } from '../composables/useDocumentCollaboratio
 import { useDocumentDraft } from '../composables/useDocumentDraft';
 import type { DocumentLifecycle } from '../type/document';
 import type { EditorView } from '@codemirror/view';
+import { downloadMarkdown } from '../utils/downloadMarkdown.ts';
 
 
 
 
 //1.页面依赖：路由，登录用户
-const userInfo = useAuthStore().userInfo
+const authStore = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -82,10 +48,15 @@ const documentLifecycle = ref<DocumentLifecycle>('draft')
 const title = ref<string>('')
 const editorContent = ref<string>('')
 const doc = ref<DocumentItem>()
-const initialDocumentContent = ref<string>()
-
+const isDocumentLoaded = ref(false)
 //3.页面展示状态
 const status = ref<string>('')
+const canInvite = computed(() => {
+    return Boolean(
+        doc.value &&
+        doc.value.owner_user_id === authStore.userInfo?.id
+    )
+})
 
 //4.编辑器与协同资源句柄
 //获取封装组件myMdEditor实例
@@ -124,7 +95,7 @@ const {
 const tryInitializeDocumentCollaboration = () => {
      const documentId = id.value
 
-     if(!documentId || !editorView.value || initialDocumentContent.value === undefined) return
+     if(!documentId || !editorView.value || !isDocumentLoaded.value) return
 
      initializeDocumentCollaboration(documentId,editorView.value)
 
@@ -172,30 +143,16 @@ const replace = (val: string) => {
  * 导出MD文件的核心方法
  */
 const exportMarkdown = () => {
-    // 1. 校验空内容
-    if (!editorContent.value.trim()) {
-        alert('请输入内容后再导出！')
+
+    if(!editorContent.value.trim()){
+        ElMessage.warning('请输入内容再导出')
         return
     }
 
-    // 2. 创建文件对象（指定编码和MIME类型，防止乱码）
-    const blob = new Blob([editorContent.value], {
-        type: 'text/markdown;charset=utf-8'
-    })
-
-    // 3. 生成临时下载链接
-    const downloadUrl = URL.createObjectURL(blob)
-    const link = document.createElement('a')
-
-    // 4. 配置下载参数（自定义文件名：时间戳+md后缀，避免重名）
-    link.href = downloadUrl
-    link.download = `markdown_${new Date().getTime()}.md`
-
-    // 5. 触发下载并清理临时元素
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(downloadUrl)
+    downloadMarkdown(
+        editorContent.value,
+        `markdown_${Date.now()}.md`
+    )
 }
 
 
@@ -226,7 +183,7 @@ const loadDocument = async (docId: string) => {
         const res = await getDocumentById(Number(docId))
 
         doc.value = res.data
-        initialDocumentContent.value = res.data.content ?? ''
+        isDocumentLoaded.value = true
         tryInitializeDocumentCollaboration()
     }catch{
 
@@ -246,7 +203,7 @@ const resetDocumentCollaboration = () => {
 
     resetDocumentCollaboration()
 
-    initialDocumentContent.value = undefined
+    isDocumentLoaded.value = false
     doc.value = undefined
 
     documentLifecycle.value = docId ? 'initializing-collab' :'draft'
@@ -272,110 +229,6 @@ onBeforeUnmount(() => {
     width: 100vw;
     overflow: hidden;
 }
-
-.editor-head-status {
-    /* 字体：系统默认无衬线体，和你页面风格统一 */
-    font-family: system-ui, -apple-system, sans-serif;
-    /* 字号：中等偏小，和标题区分开 */
-    font-size: 15px;
-    /* 字重：常规，不加粗 */
-    font-weight: normal;
-    /* 颜色：偏灰的蓝色，还原图中淡感 */
-    color: #64748b;
-    /* 接近 slate-500，和图中色调一致 */
-    /* 轻微模糊/淡感：可选，模拟图中“发虚”效果 */
-    opacity: 0.8;
-    /* 如果你想更贴近图中的模糊感，可以加一行 text-shadow */
-    text-shadow: 0 0 1px rgba(100, 116, 139, 0.3);
-    margin-left: 70px;
-}
-
-.editor-head {
-    width: 100%;
-    height: 50px;
-    display: flex;
-    align-items: center;
-    box-sizing: border-box;
-}
-
-.editor-head-left {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    min-width: 0;
-}
-
-
-.avatar-1 {
-    z-index: 1;
-}
-
-.avatar-2 {
-    z-index: 2;
-    margin-left: -12px;
-}
-
-:deep(.el-avatar) {
-    border: 2px solid #ffffff !important;
-}
-
-.avatar {
-    display: flex;
-}
-
-.share {
-    display: flex;
-}
-
-.editor-head-right-func {
-    display: flex;
-    align-items: center;
-    margin-left: auto;
-    padding-right: 24px;
-    gap: 12px;
-}
-
-.editor-head-right-func-name{
-     font-size: medium;
-     font-weight: 400;
-}
-
-
-
-.editor-head-right {
-    display: flex;
-    align-items: center;
-    flex: 1;
-    justify-content: flex-end;
-    min-width: 0;
-}
-
-.editor-head-right-ai {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-
-
-.editor-head .back {
-    margin-left: 15px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-}
-
-.editor-head-text {
-    margin-left: 20px;
-    font-size: larger;
-}
-
-.editor-head-text p {
-    margin: 0;
-    padding: 0;
-}
-
 
 .editor-container {
     height: calc(100% - 50px);
