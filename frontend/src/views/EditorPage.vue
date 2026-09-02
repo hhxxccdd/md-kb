@@ -61,19 +61,15 @@ import { useAuthStore } from '../stores/user';
 //引入elementplus图标样式
 import { Back } from '@element-plus/icons-vue'
 import AiModel from '../component/ai/AiModel.vue';
-import { createDocument,createDocumentInvite,getDocumentById,updateDocument,type DocumentItem } from '../api';
+import { createDocumentInvite,getDocumentById,type DocumentItem} from '../api';
 import { ElMessage } from 'element-plus';
 import { useDocumentCollaboration } from '../composables/useDocumentCollaboration';
+import { useDocumentDraft } from '../composables/useDocumentDraft';
+import type { DocumentLifecycle } from '../type/document';
 import type { EditorView } from '@codemirror/view';
 
 
 
-type DocumentLifecycle =
-     | 'draft'                    //未创建，本地草稿
-     | 'creating'                 //创建请求进行中
-     | 'initializing-collab'      //已有id，协同资源准备中
-     | 'collaborating'            // WebSocket/Yjs已可用
-     | 'create-failed'            //创建失败，草稿保留并允许重试
 
 //1.页面依赖：路由，登录用户
 const userInfo = useAuthStore().userInfo
@@ -85,8 +81,6 @@ const id = computed(() => route.params.id as string | undefined)
 const documentLifecycle = ref<DocumentLifecycle>('draft')
 const title = ref<string>('')
 const editorContent = ref<string>('')
-let   draftRevision = 0
-let   createTimer:ReturnType<typeof setTimeout> | undefined
 const doc = ref<DocumentItem>()
 const initialDocumentContent = ref<string>()
 
@@ -114,6 +108,16 @@ const {onlineUsers,initialize: initializeDocumentCollaboration,dispose: disposeD
      }
 })
 
+const {
+    handleContentChange:handleEditorContentChange,
+    dispose: disposeDocumentDraft
+} = useDocumentDraft({
+    editorContent,
+    lifecycle:documentLifecycle,
+    onStatusChange:(nextStatus) => {status.value = nextStatus},
+    onCreated: async (documentId) =>  {await router.replace(`/edit/${documentId}`)}
+})
+
 
 
 
@@ -133,83 +137,6 @@ const handleEditorReady = (view: EditorView) => {
 }
 
 
-const handleEditorContentChange = (content: string) => {
-  editorContent.value = content
-
-  if(documentLifecycle.value === 'draft' || documentLifecycle.value === 'creating'){
-             draftRevision +=1
-  }
-
-  if(documentLifecycle.value === 'draft'){
-    status.value = '未保存'
-    scheduleDraftCreation()
-  }
-
-
-}
-
-const extractDocumentTitle = (content:string) => {
-     const firstline = content.split('\n')[0]?.trim() ?? ''
-
-     if(!firstline)  return '未命名文档'
-
-     return firstline.startsWith('# ') ? firstline.slice(2).trim() || '未命名文档' : firstline
-}
-
-//防抖
-const cancelScheduleCreation = () => {
-    if(!createTimer)  return
-    clearTimeout(createTimer)
-    createTimer = undefined
-}
-
-
-const createDraftDocument = async() => {
-
-    if(documentLifecycle.value !== 'draft') return
-
-    const contentAtCreation = editorContent.value
-    const revisionAtCreation = draftRevision
-
-    if(!contentAtCreation.trim()) return
-
-    documentLifecycle.value = 'creating'
-    status.value = '保存中'
-
-    try {
-        const result = await createDocument({
-            title: extractDocumentTitle(contentAtCreation),
-            content: contentAtCreation
-        })
-
-        //创建请求期间用户继续输入时，补写最新内容
-        if(draftRevision !== revisionAtCreation){
-            await updateDocument(result.data.id, {
-                 title:extractDocumentTitle(editorContent.value),
-                 content:editorContent.value
-            })
-        }
-        status.value = '已保存'
-        documentLifecycle.value = 'initializing-collab'
-        await router.replace(`/edit/${result.data.id}`)
-    }catch {
-         documentLifecycle.value = 'create-failed'
-         status.value = '保存失败'
-    }
-
-}
-
-const scheduleDraftCreation = () => {
-    if(documentLifecycle.value !== 'draft') return
-
-    cancelScheduleCreation()
-
-    createTimer = setTimeout(() => {
-        createTimer = undefined
-        void createDraftDocument()
-    },800)
-
-}
 
 //AI弹窗实例
 const modalVisible = ref<boolean>(false)
@@ -313,7 +240,8 @@ const resetDocumentCollaboration = () => {
 
 
  watch(id,(docId,previousDocId) => {
-    cancelScheduleCreation()
+    
+    disposeDocumentDraft()
     if(docId === previousDocId) return
 
     resetDocumentCollaboration()
@@ -332,7 +260,7 @@ const resetDocumentCollaboration = () => {
 
 
 onBeforeUnmount(() => {
-    cancelScheduleCreation()
+    disposeDocumentDraft()
     resetDocumentCollaboration()
 })
 
