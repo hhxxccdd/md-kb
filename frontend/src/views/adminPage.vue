@@ -4,8 +4,9 @@
       <div class="admin-head-title">AI 知识库</div>
       <div class="admin-head-right">
         <el-autocomplete
-          v-model="state"
+          v-model="searchKeyword"
           :fetch-suggestions="querySearch"
+          :loading="isSearching"
           @select="handleSelect"
           clearable
           class="w-50"
@@ -68,7 +69,8 @@
 import { useAuthStore } from '../stores/user'
 import { useRouter } from 'vue-router';
 import { computed, ref,onMounted } from 'vue'
-import { getPrivateDocuments,getSharedDocuments, searchDocuments} from '../api';
+import { getPrivateDocuments,getSharedDocuments} from '../api';
+import { useDocumentSearch,type SearchSuggestion } from '../features/documents/composables/useDocumentSearch';
 import type { DocumentItem,SharedDocumentItem } from '../api';
 //引入卡片组件
 import DocumentCard from '../component/card/documentCard.vue';
@@ -81,41 +83,13 @@ const dialogVisible = ref(false)
 const privateDocuments =  ref<DocumentItem[]>([])
 const sharedDocuments  =  ref<SharedDocumentItem[]>([])
 
-//搜索功能
-const state = ref<string>('')
-let searchTimer: ReturnType<typeof setTimeout> | null = null
-type SearchSuggestion = {
-   value:string
-   doc:DocumentItem
-}
+const searchKeyword = ref('')
+
+const {isSearching,querySearch} = useDocumentSearch()
 
 
-const querySearch = (queryString:string, cb:(results:SearchSuggestion[]) => void) => {
-    
-     if(searchTimer) clearTimeout(searchTimer)
 
-     searchTimer = setTimeout(async () => {
-        const keyWord = queryString.trim()
 
-        if(!keyWord){
-          cb([])
-          return 
-        }
-
-        try {
-          const res = await searchDocuments(keyWord)
-
-          cb(
-            res.data.map((doc) => ({
-                 value: doc.title,
-                 doc
-            }))
-          )
-        } catch {
-          cb([])
-        }
-     })
-}
 
 const handleSelect = (item: SearchSuggestion) => {
   router.push(`/edit/${item.doc.id}`)
