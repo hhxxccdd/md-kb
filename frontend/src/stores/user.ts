@@ -2,7 +2,6 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import router from '../router'
 import { loginUser, emailLoginUser } from '../api'
-import { ElMessage } from 'element-plus'
 import { ApiCode } from '../type/api'
 
 interface userInfo {

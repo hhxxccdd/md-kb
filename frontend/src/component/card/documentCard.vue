@@ -20,7 +20,7 @@
 </template>
 
 <script lang="ts" setup>
-import { ElMessage } from 'element-plus'
+
 import { useRouter } from 'vue-router'
 import type { DocumentItem } from '../../api/doc'
 import { deleteDocument, shareDocument } from '../../api/doc'

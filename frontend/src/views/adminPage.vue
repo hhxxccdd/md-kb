@@ -70,7 +70,7 @@ import { useAuthStore } from '../stores/user'
 import { useRouter } from 'vue-router';
 import { computed, ref,onMounted } from 'vue'
 import { getPrivateDocuments,getSharedDocuments} from '../api';
-import { useDocumentSearch,type SearchSuggestion } from '../features/documents/composables/useDocumentSearch';
+import { useDocumentSearch } from '../features/documents/composables/useDocumentSearch';
 import type { DocumentItem,SharedDocumentItem } from '../api';
 //引入卡片组件
 import DocumentCard from '../component/card/documentCard.vue';
@@ -91,8 +91,19 @@ const {isSearching,querySearch} = useDocumentSearch()
 
 
 
-const handleSelect = (item: SearchSuggestion) => {
-  router.push(`/edit/${item.doc.id}`)
+const handleSelect = (item: Record<string, unknown>) => {
+  const selectedDocument = item.doc
+
+  if (
+    !selectedDocument ||
+    typeof selectedDocument !== 'object' ||
+    !('id' in selectedDocument) ||
+    typeof selectedDocument.id !== 'number'
+  ) {
+    return
+  }
+
+  router.push(`/edit/${selectedDocument.id}`)
 }
 
 

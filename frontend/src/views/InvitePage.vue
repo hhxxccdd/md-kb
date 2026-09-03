@@ -16,7 +16,7 @@
           </div>
 
           <div class="invite-main">
-            <el-avatar :size="56" :src="invite.inviter.avatar" />
+            <el-avatar :size="56" :src="invite.inviter.avatar ?? undefined" />
             <div class="invite-copy">
               <div class="invite-title">
                 {{ invite.inviter.username }} 邀请你协作文档
@@ -60,7 +60,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
 import { acceptDocumentInvite, getDocumentInvite } from '../api/doc'
 import type { DocumentInviteDetail } from '../api/doc'
 import { useAuthStore } from '../stores/user'

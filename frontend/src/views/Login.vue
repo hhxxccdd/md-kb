@@ -80,7 +80,6 @@
 import { ref } from 'vue'
 import { registerUser, sendEmailCode } from '../api/user'
 import { useAuthStore } from '../stores/user'
-import { ElMessage } from 'element-plus'
 import { ApiCode } from '../type/api'
 
 const mode = ref<string>('login')

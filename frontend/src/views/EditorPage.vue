@@ -4,10 +4,10 @@
         @export="exportMarkdown" @invite="copyInviteLink"></EditorHeader>
         <div class="editor-container">
             <!-- 在模板中使用组件，用v-model绑定内容 -->
-            <MyMdEditor ref="myMdEditorRef"  :key="id ?? 'new-document'"  @update:title="title = $event"
+            <AsyncMyEditor ref="myMdEditorRef"  :key="id ?? 'new-document'"  @update:title="title = $event"
                 @editor-ready="handleEditorReady"
                 theme="light" @update:editor-content="handleEditorContentChange">
-            </MyMdEditor>
+        </AsyncMyEditor>
         </div>
         <div>
             <!-- AI弹窗 -->
@@ -19,20 +19,39 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref,onBeforeUnmount,watch } from 'vue'
+import { computed, ref,onBeforeUnmount,watch, defineAsyncComponent } from 'vue'
 import { useRoute,useRouter } from 'vue-router'
 import EditorHeader from '../component/editor/EditorHeader.vue';
-import MyMdEditor from '../component/editor/MyMdEditor.vue';
 //引入Store
 import { useAuthStore } from '../stores/user';
 import AiModel from '../component/ai/AiModel.vue';
 import { createDocumentInvite,getDocumentById,type DocumentItem} from '../api';
-import { ElMessage } from 'element-plus';
 import { useDocumentCollaboration } from '../composables/useDocumentCollaboration';
 import { useDocumentDraft } from '../composables/useDocumentDraft';
 import type { DocumentLifecycle } from '../type/document';
 import type { EditorView } from '@codemirror/view';
 import { downloadMarkdown } from '../utils/downloadMarkdown.ts';
+import EditorLoading from '../component/editor/EditorLoading.vue';
+import EditorLoadError from '../component/editor/EditorLoadError.vue'
+import type { MarkdownEditorExpose } from '../type/editor.ts';
+
+
+//定义异步组件
+const AsyncMyEditor = defineAsyncComponent({
+    loader:() => import('../component/editor/MyMdEditor.vue'),
+    loadingComponent:EditorLoading,
+    errorComponent:EditorLoadError,
+    delay:150,
+    suspensible:false,
+    onError(_error, retry, fail, attempts) {
+    if (attempts <= 1) {
+      retry()
+      return
+    }
+
+    fail()
+  },
+})
 
 
 
@@ -60,7 +79,7 @@ const canInvite = computed(() => {
 
 //4.编辑器与协同资源句柄
 //获取封装组件myMdEditor实例
-const myMdEditorRef = ref<typeof MyMdEditor>()
+const myMdEditorRef = ref<MarkdownEditorExpose>()
 const editorView = ref<EditorView>()
 
 
@@ -119,16 +138,24 @@ const selectedText = ref<string>('')
 // 按钮点击：获取选中文字（调用暴露的方法）
 // ======================================
 const openAiModal = (mode: 'polish' | 'translate'  | 'answerDoc') => {
-    if (!myMdEditorRef.value) return
-    // ✅ 获取选中文本（从你的封装组件里拿）
-    selectedText.value = myMdEditorRef.value?.getSelectedText()
-    if (!selectedText.value.trim() && mode !== 'answerDoc') {
-        alert('请先选中文本')
+
+      const editor = myMdEditorRef.value
+
+      if(!editor){
+        ElMessage.warning('编辑器正在加载，请稍后重试')
         return
-    }
-    aiMode.value = mode
-    modalVisible.value = true
-    // myMdEditorRef.value?.replaceSelection('我是Hhxc')
+      }
+
+      const text = editor.getSelectedText() ?? ''
+
+      if(!text.trim() && mode !== 'answerDoc'){
+         ElMessage.warning('请先选中文本')
+         return
+      }
+
+      selectedText.value = text
+      aiMode.value = mode
+      modalVisible.value = true
 }
 
 //替换ai内容

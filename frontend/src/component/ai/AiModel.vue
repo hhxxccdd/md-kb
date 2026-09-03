@@ -52,7 +52,7 @@ import { getSessionId, getContext, saveMessage } from '../../api'
 import type { ChatMessage } from '../../type/chat';
 //引入userId信息与docId
 import { useAuthStore } from '../../stores/user';
-import { ElMessage } from 'element-plus';
+
 
 const props = defineProps<{
   visible: boolean
