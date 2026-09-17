@@ -1,48 +1,78 @@
 <template>
-    <header class="editor-header">
-        <div class="editor-header-left">
-             <button class="editor-header-back" type="button" aria-label="返回文档列表" @click="emit('back')"> <el-icon size="24"> <Back /> </el-icon>  </button>
+  <header class="editor-header">
+    <div class="editor-header-left">
+      <button
+        class="editor-header-back"
+        type="button"
+        aria-label="返回文档列表"
+        @click="emit('back')"
+      >
+        <el-icon size="24"> <Back /> </el-icon>
+      </button>
 
-             <p class="editor-header-title"> {{ title }} </p>
+      <p class="editor-header-title">{{ title }}</p>
 
-             <span class="editor-header-status"> {{ status }} </span>
+      <span class="editor-header-status"> {{ status }} </span>
+    </div>
+
+    <div class="editor-header-right">
+      <el-button
+        text
+        :loading="qualityChecking"
+        :disabled="!canCheckQuality"
+        @click="emit('quality-check')"
+      >
+        <el-icon><CircleCheck /></el-icon>
+        <span>质量检查</span>
+      </el-button>
+
+      <el-button text class="export-button" @click="emit('export')">
+        <el-icon><Download /></el-icon>
+        <span>导出</span>
+      </el-button>
+
+      <div class="header-divider" aria-hidden="true"></div>
+
+      <div class="editor-header-collaboration">
+        <div class="online-users">
+          <el-avatar
+            v-for="user in onlineUsers"
+            :key="user.id"
+            :size="30"
+            :src="user.avatar || undefined"
+            :title="user.username"
+          >
+            {{ user.username.slice(0, 1) }}
+          </el-avatar>
         </div>
 
-        <div class="editor-header-right">
-            <div class="editor-header-actions">
-                <el-button type="primary" dashed @click="emit('ai-action','polish')">AI润色</el-button>
-                <el-button type="primary" dashed @click="emit('ai-action','translate')">AI翻译</el-button>
-                <el-button type="primary" dashed @click="emit('ai-action','answerDoc')">文档问答</el-button>
-                <el-button type="primary" dashed @click="emit('export')">导出</el-button>
-            </div>
-
-            <div class="editor-header-collaboration">
-                <el-avatar v-for="user in onlineUsers" :key="user.id" :size="28" :src="user.avatar || undefined" :title="user.username">{{ user.username.slice(0,1) }}</el-avatar>
-                <el-button v-if="canInvite" type="primary" @click="emit('invite')">邀请协作</el-button>
-           </div>
-        </div>
-    </header>
+        <el-button v-if="canInvite" type="primary" @click="emit('invite')">
+          邀请协作
+        </el-button>
+      </div>
+    </div>
+  </header>
 </template>
 
 <script setup lang="ts">
-import { Back } from '@element-plus/icons-vue';
-import type { OnlineUser } from '../../type/collab';
+import { Back, Download, CircleCheck } from "@element-plus/icons-vue";
+import type { OnlineUser } from "../../type/collab";
 
 defineProps<{
-    title: string
-    status:string
-    onlineUsers:OnlineUser[]
-    canInvite:boolean
-}>()
+  title: string;
+  status: string;
+  onlineUsers: OnlineUser[];
+  canInvite: boolean;
+  qualityChecking:boolean;
+  canCheckQuality: boolean;
+}>();
 
 const emit = defineEmits<{
-    back:[]
-    'ai-action':[mode: 'polish' | 'translate' | 'answerDoc']
-    export: []
-    invite: []
-}>()
-
-
+  back: [];
+  export: [];
+  invite: [];
+  "quality-check": [];
+}>();
 </script>
 
 <style scoped>
@@ -64,6 +94,8 @@ const emit = defineEmits<{
 
 .editor-header-right {
   justify-content: flex-end;
+  gap: 10px;
+  padding-right: 20px;
 }
 
 .editor-header-back {
@@ -84,7 +116,10 @@ const emit = defineEmits<{
 
 .editor-header-status {
   margin-left: 70px;
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   font-size: 15px;
   font-weight: normal;
   color: #64748b;
@@ -92,19 +127,35 @@ const emit = defineEmits<{
   text-shadow: 0 0 1px rgba(100, 116, 139, 0.3);
 }
 
-.editor-header-actions,
+.export-button {
+  height: 34px;
+  padding: 0 10px;
+  color: #475569;
+}
+
+.header-divider {
+  width: 1px;
+  height: 22px;
+  margin: 0 4px;
+  background: #e5e7eb;
+}
+
 .editor-header-collaboration {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
 }
 
-.editor-header-collaboration {
-  margin-left: auto;
-  padding-right: 24px;
+.online-users {
+  display: flex;
+  align-items: center;
 }
 
-:deep(.el-avatar) {
+.online-users :deep(.el-avatar + .el-avatar) {
+  margin-left: -8px;
+}
+
+.online-users :deep(.el-avatar) {
   border: 2px solid #ffffff !important;
 }
 </style>

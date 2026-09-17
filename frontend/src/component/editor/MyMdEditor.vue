@@ -59,14 +59,33 @@ defineExpose({
         return editorRef.value?.getSelectedText()
     },
     //替换选中文本
-    replaceSelection: (replaceText: string) => {
-        //获取选中的文本
-        const selsctedText = editorRef.value?.getSelectedText()
-        if (!selsctedText) return
+    replaceRange: (from:number,to:number,expectedText:string,replacement:string) => {
+         const view = editorRef.value?.getEditorView()
 
-        //直接替换响应式变量
-        editorContent.value = editorContent.value.replace(selsctedText, replaceText)
+         if(!view)  return false
+
+         const documentLength = view.state.doc.length
+
+         if(from < 0 || to < from || to > documentLength) {
+             return false
+         }
+
+         const currentText = view.state.sliceDoc(from,to)
+
+         if(currentText !== expectedText){
+            return false
+         }
+
+         view.dispatch({
+            changes: {
+                from,to,insert:replacement,
+            }
+         })
+
+         return true
+
     },
+    
     setContent: (content:string) => {
         settingContent.value = true
         editorContent.value = content

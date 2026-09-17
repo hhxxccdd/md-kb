@@ -12,6 +12,9 @@ export interface ChatParams {
         stream?: boolean
         result_format?: 'text' | 'message'
         incremental_output?: boolean
+        response_format?: {
+            type: 'text' | 'json_object'
+        }
     }
 }
 

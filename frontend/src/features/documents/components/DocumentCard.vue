@@ -22,9 +22,9 @@
 <script lang="ts" setup>
 
 import { useRouter } from 'vue-router'
-import type { DocumentItem } from '../../api/doc'
-import { deleteDocument, shareDocument } from '../../api/doc'
-import { getUserNameById } from '../../api'
+import type { DocumentItem } from '../../../api/doc'
+import { deleteDocument, shareDocument } from '../../../api/doc'
+import { getUserNameById } from '../../../api'
 import { onMounted,ref } from 'vue'
 
 const username = ref<string>('')

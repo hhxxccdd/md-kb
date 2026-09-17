@@ -73,7 +73,7 @@ import { getPrivateDocuments,getSharedDocuments} from '../api';
 import { useDocumentSearch } from '../features/documents/composables/useDocumentSearch';
 import type { DocumentItem,SharedDocumentItem } from '../api';
 //引入卡片组件
-import DocumentCard from '../component/card/documentCard.vue';
+import DocumentCard from '../features/documents/components/DocumentCard.vue';
 
 const userInfo = useAuthStore().userInfo
 const router = useRouter()

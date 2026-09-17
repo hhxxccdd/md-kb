@@ -40,6 +40,12 @@ const routes: Array<RouteRecordRaw> = [
         meta: {
             requiresAuth: true
         }
+    },
+    { 
+        path: '/test',
+        name: 'test',
+        component: () => import('../views/InlineDiffDemo.vue')
+
     }
 ]
 

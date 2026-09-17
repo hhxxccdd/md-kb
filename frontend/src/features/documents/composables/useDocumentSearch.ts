@@ -42,7 +42,7 @@ export function useDocumentSearch() {
       isSearching.value = false;
       searchError.value = null;
       callback([]);
-      return;
+      return; 
     }
 
     searchTimer = setTimeout(async () => {

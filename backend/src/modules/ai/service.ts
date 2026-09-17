@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { throwBusinessError } from '../../utils/throwError'
-import { AIPromptTemplates, escapePromptContent } from "./prompt";
+import { AIPromptTemplates, normalizePromptContent } from "./prompt";
 import { initSSE, SSEStatus } from "./sse";
 import { ChatParams } from "./type";
 import { AI_CONFIG } from "./config";
@@ -14,7 +14,7 @@ export type PromptTemplateType = keyof typeof AIPromptTemplates
 // 封装AI通用流式请求方法
 // @param req Express请求对象
 // @param res Express响应对象
-// @param remplateType 模板类型:polish/translate/answerDoc
+// @param templateType AI 提示词模板类型
 export async function handleAIStream(req: Request, res: Response, templateType: PromptTemplateType) {
     try {
         const params = req.body.params
@@ -28,15 +28,15 @@ export async function handleAIStream(req: Request, res: Response, templateType: 
         switch (templateType) {
             case "polish":
                 const polishTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["polish"]
-                prompt = polishTemplate(escapePromptContent(params.content))
+                prompt = polishTemplate(normalizePromptContent(params.content))
                 break;
             case "translate":
                 const translateTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["translate"]
-                prompt = translateTemplate(escapePromptContent(params.content), escapePromptContent(params.targetLang))
+                prompt = translateTemplate(normalizePromptContent(params.content), normalizePromptContent(params.targetLang))
                 break;
             case "answerDocWithContext":
                 const answerDocTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["answerDocWithContext"]
-                prompt = answerDocTemplate(escapePromptContent(params.docContent),params.historyMessages, escapePromptContent(params.question));
+                prompt = answerDocTemplate(normalizePromptContent(params.docContent),params.historyMessages, normalizePromptContent(params.question));
                 break;
             default:
                 throwBusinessError("不支持的模板类型");

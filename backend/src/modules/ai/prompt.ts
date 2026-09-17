@@ -8,14 +8,27 @@ export const AIPromptTemplates = {
      * @param content 待润色文本
      */
     polish: (content: string) => `
-你是专业技术文档润色员，严格执行以下强制规则，一条都不能违反：
-1. 【格式绝对不变】完整保留原文所有Markdown格式、标题、代码块、列表、加粗、斜体
-2. 【换行绝对保留】原文的所有换行符、空行、段落分隔**原样保留**，不删除、不合并、不调整
-3. 【禁止自动排版】绝对不自动合并段落、不删除空行、不修改换行结构
-4. 【内容仅优化】只把口语化文字改成专业技术用语，不修改原文任何内容和结构
-5. 【纯输出】只输出润色后的内容，无任何额外文字、解释、备注
+你是一名专业的中文技术文档编辑。请对【待润色内容】进行中等强度润色。
 
-待润色内容：
+【润色目标】
+1. 提高表达的准确性、流畅度、简洁性和专业性
+2. 删除重复、啰嗦和过度口语化的表达
+3. 修复语病、歧义、不自然的语序和不恰当的标点
+4. 在不改变原意的前提下，允许调整普通文本的句式、语序和断句
+
+【必须保留】
+1. 原文的事实、观点、数字、URL、文件路径、专有名词和技术含义
+2. Markdown 标题、列表、引用、链接、加粗、斜体和代码块等基本结构
+3. 代码块和行内代码中的内容，不得翻译、改写或格式化代码
+
+【禁止事项】
+1. 不得编造或补充原文中不存在的事实、结论和示例
+2. 不得擅自增加、删除或改变 Markdown 标题层级和内容块顺序
+3. 不得输出解释、评价、修改说明、开场白或结束语
+
+只输出润色后的正文。
+
+【待润色内容】
 ${content}
 `,
 
@@ -36,7 +49,43 @@ ${content}
 `,
 
     /**
-   * 3. 文档问答模板：支持多轮上下文的文档解读专家
+     * 3. Markdown 全文语义质量检查
+     * @param numberedContent 带行号的 Markdown 文档
+     */
+    markdownQuality: (numberedContent: string) => `
+你是一名技术文档质量审查员。请检查【带行号的 Markdown 文档】中的语义质量问题。
+
+只检查以下问题：
+1. 前后使用不同术语表达同一概念
+2. 标题与其下方内容明显不匹配
+3. 内容存在明显重复
+4. 句子或段落存在严重歧义
+5. 章节组织存在明显不合理之处
+
+不要检查 Markdown 语法、标题跳级、链接格式或代码格式，这些问题由程序规则检查。
+不要改写全文，不要编造原文没有的信息。最多返回最重要的 5 条问题；没有问题时返回空数组。
+
+只输出合法 JSON，不要使用 Markdown 代码围栏，不要输出任何解释。严格使用以下结构：
+{
+  "issues": [
+    {
+      "severity": "warning 或 suggestion",
+      "category": "structure、clarity、consistency 或 duplication",
+      "line": 1,
+      "title": "简短问题标题",
+      "message": "问题说明",
+      "suggestion": "修改建议",
+      "excerpt": "该行中的原文证据"
+    }
+  ]
+}
+
+【带行号的 Markdown 文档】
+${numberedContent}
+`,
+
+    /**
+   * 4. 文档问答模板：支持多轮上下文的文档解读专家
    * @param docContent 文档内容
    * @param historyMessages 历史对话记录（按时间正序排列）
    * @param question 当前用户问题
@@ -65,6 +114,8 @@ ${question}
 };
 
 // 参数校验：防注入（过滤特殊字符）
-export function escapePromptContent(content: string) {
-    return content.replace(/[\r\n]/g, ' ').trim();
+export function normalizePromptContent(content: string) {
+  return content
+    .replace(/\r\n?/g, '\n')
+    .replace(/\u0000/g, '')
 }

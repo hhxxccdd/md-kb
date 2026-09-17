@@ -12,6 +12,17 @@ const aiClient = axios.create({
     }
 })
 
+const rethrowAIClientError = (error: any): never => {
+    const errInfo: AIError = {
+        code: error.response?.status || 500,
+        message: 'AI服务异常'
+    }
+    if (error.response?.status === 401) errInfo.message = 'API_KEY错误或无效';
+    if (error.response?.status === 429) errInfo.message = '接口调用超限，请稍后重试';
+    if (error.code === 'ECONNABORTED') errInfo.message = 'AI接口请求超时';
+    return throwAIError(errInfo.message, errInfo.code)
+}
+
 export const requestAI = async (params: ChatParams) => {
     try {
         // 无论是否流式请求，都设置为stream模式
@@ -23,13 +34,15 @@ export const requestAI = async (params: ChatParams) => {
         })
         return response.data
     } catch (error: any) {
-        const errInfo: AIError = {
-            code: error.response?.status || 500,
-            message: 'AI服务异常'
-        }
-        if (error.response?.status === 401) errInfo.message = 'API_KEY错误或无效';
-        if (error.response?.status === 429) errInfo.message = '接口调用超限，请稍后重试';
-        if (error.code === 'ECONNABORTED') errInfo.message = 'AI接口请求超时';
-        throwAIError(errInfo.message)
+        rethrowAIClientError(error)
+    }
+}
+
+export const requestAIOnce = async (params: ChatParams) => {
+    try {
+        const response = await aiClient.post('', params)
+        return response.data
+    } catch (error: any) {
+        rethrowAIClientError(error)
     }
 }
