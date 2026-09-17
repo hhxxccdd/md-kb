@@ -12,7 +12,6 @@ export const authMiddleware = asyncHandler(async (req: Request, res: Response, n
         ? authHeader.slice(7).trim()
         : undefined
 
-    console.log('====== accessToken:', accessToken, '======')
 
     if (!accessToken) {
         throwAuthError('请先登录', 401, ApiCode.LoginExpired)

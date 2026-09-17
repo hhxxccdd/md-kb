@@ -337,6 +337,16 @@ export const acceptDocumentInvite = async (token: string, userId: number) => {
       },
     });
 
+    // 2. 文档已经有其他协作者，将其标记为协作文档
+    await tx.document.update({
+      where: {
+        id: invite.document_id,
+      },
+      data: {
+        is_shared: true,
+      },
+    });
+
     await tx.documentInvite.update({
       where: { id: invite.id },
       data: {

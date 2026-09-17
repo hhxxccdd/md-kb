@@ -26,9 +26,6 @@ export const generateTokenPair = async (userId: number): Promise<TokenPair> => {
         data: { refreshToken }
     })
 
-    console.log('accessToken:', accessToken)
-    console.log('refreshToken:', refreshToken)
-
     return { accessToken, refreshToken }
 }
 
@@ -49,18 +46,14 @@ export const refreshAccessToken = async (refreshToken: string) => {
         }
 
         if (refreshPromises.has(payload.userId)) {
-            console.log('====== 复用已有的刷新 Promise，用户ID:', payload.userId, '======')
             return refreshPromises.get(payload.userId)!
         }
-
-        console.log('====== 创建新的刷新 Promise，用户ID:', payload.userId, '======')
 
         const promise = (async () => {
             try {
                 return await generateTokenPair(payload.userId)
             } finally {
                 refreshPromises.delete(payload.userId)
-                console.log('====== 删除刷新 Promise 缓存，用户ID:', payload.userId, '======')
             }
         })()
 
