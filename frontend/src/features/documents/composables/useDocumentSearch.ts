@@ -1,5 +1,6 @@
 import { onScopeDispose, ref } from "vue";
-import { searchDocuments, type DocumentItem } from "../../../api";
+import { searchDocuments } from "../api/documents";
+import type { DocumentItem } from "../types/documents";
 
 const SEARCH_DEBOUNCE_MS = 300;
 

@@ -74,36 +74,36 @@ import {
   defineAsyncComponent,
 } from "vue";
 import { useRoute, useRouter } from "vue-router";
-import EditorHeader from "../component/editor/EditorHeader.vue";
+import EditorHeader from "../features/editor/components/EditorHeader.vue";
 //引入Store
-import { useAuthStore } from "../stores/user";
+import { useAuthStore } from "../features/auth/stores/useAuthStore";
 import AiLanguageMenu from "../features/ai/components/AiLanguageMenu.vue";
 import AiReviewPopover from "../features/ai/components/AiReviewPopover.vue";
 import { useAIReview } from "../features/ai/composables/useAIReview";
 import {
   createDocumentInvite,
   getDocumentById,
-  type DocumentItem,
-} from "../api";
-import { useDocumentCollaboration } from "../composables/useDocumentCollaboration";
-import { useDocumentDraft } from "../composables/useDocumentDraft";
-import type { DocumentLifecycle } from "../type/document";
+} from "../features/documents/api/documents";
+import type { DocumentItem } from "../features/documents/types/documents";
+import { useDocumentCollaboration } from "../features/collaboration/composables/useDocumentCollaboration";
+import { useDocumentDraft } from "../features/documents/composables/useDocumentDraft";
+import type { DocumentLifecycle } from "../features/documents/types/document";
 import type { EditorView } from "@codemirror/view";
-import { downloadMarkdown } from "../utils/downloadMarkdown.ts";
-import EditorLoading from "../component/editor/EditorLoading.vue";
-import EditorLoadError from "../component/editor/EditorLoadError.vue";
-import type { MarkdownEditorExpose } from "../type/editor.ts";
+import { downloadMarkdown } from "../features/documents/utils/downloadMarkdown.ts";
+import EditorLoading from "../features/editor/components/EditorLoading.vue";
+import EditorLoadError from "../features/editor/components/EditorLoadError.vue";
+import type { MarkdownEditorExpose } from "../features/editor/types/editor.ts";
 import AiInlineHint from "../features/ai/components/AiInlineHint.vue";
 import { useAISelectionHint } from "../features/ai/composables/useAISelectionHint";
 import type { AIActionType, AISelectionHint } from "../features/ai/types/ai.ts";
 import { useAIInlineDiff } from "../features/ai/composables/useAIInlineDiff.ts";
-import MarkdownQualityDrawer from "../features/quality/component/MarkdownQualityDrawer.vue";
+import MarkdownQualityDrawer from "../features/quality/components/MarkdownQualityDrawer.vue";
 import { useMarkdownQualityCheck } from "../features/quality/composables/useMarkdownQualityCheck";
 import type { MarkdownQualityIssue } from "../features/quality/types/markdownQuality";
 
 //定义异步组件
 const AsyncMyEditor = defineAsyncComponent({
-  loader: () => import("../component/editor/MyMdEditor.vue"),
+  loader: () => import("../features/editor/components/MyMdEditor.vue"),
   loadingComponent: EditorLoading,
   errorComponent: EditorLoadError,
   delay: 150,

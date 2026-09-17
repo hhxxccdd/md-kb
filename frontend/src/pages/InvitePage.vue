@@ -60,9 +60,9 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { acceptDocumentInvite, getDocumentInvite } from '../api/doc'
-import type { DocumentInviteDetail } from '../api/doc'
-import { useAuthStore } from '../stores/user'
+import { acceptDocumentInvite, getDocumentInvite } from '../features/documents/api/documents'
+import type { DocumentInviteDetail } from '../features/documents/types/documents'
+import { useAuthStore } from '../features/auth/stores/useAuthStore'
 
 const route = useRoute()
 const router = useRouter()

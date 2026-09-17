@@ -32,7 +32,7 @@
            <span class="tab-count">{{ privateDocuments.length }}</span>
         </div>
         <div :class="['admin-content-item',{active: activeTab === 'shared'}]" @click="activeTab = 'shared'">
-          团队公开文档
+          协作文档
            <span class="tab-count">{{ sharedDocuments.length }}</span>
         </div>
       </div>
@@ -66,12 +66,12 @@
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '../stores/user'
+import { useAuthStore } from '../features/auth/stores/useAuthStore'
 import { useRouter } from 'vue-router';
 import { computed, ref,onMounted } from 'vue'
-import { getPrivateDocuments,getSharedDocuments} from '../api';
+import { getPrivateDocuments,getSharedDocuments} from '../features/documents/api/documents';
 import { useDocumentSearch } from '../features/documents/composables/useDocumentSearch';
-import type { DocumentItem,SharedDocumentItem } from '../api';
+import type { DocumentItem,SharedDocumentItem } from '../features/documents/types/documents';
 //引入卡片组件
 import DocumentCard from '../features/documents/components/DocumentCard.vue';
 
@@ -120,7 +120,7 @@ const currentDocs = computed(() => {
 })
 
 const loadDocuments = async () => {
-//根据id查询私有文档与公开文档
+// 查询当前用户的私有文档与协作文档
    try {
       const privateRes = await getPrivateDocuments()
       privateDocuments.value = privateRes.data

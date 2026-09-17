@@ -1,6 +1,6 @@
 import type { Ref } from "vue";
-import { createDocument, updateDocument } from "../api";
-import type { DocumentLifecycle } from "../type/document";
+import { createDocument, updateDocument } from "../api/documents";
+import type { DocumentLifecycle } from "../types/document";
 
 type DocumentSaveStatus = "未保存" | "保存中" | "已保存" | "保存失败";
 

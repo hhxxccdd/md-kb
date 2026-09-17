@@ -56,7 +56,7 @@
 
 <script setup lang="ts">
 import { Back, Download, CircleCheck } from "@element-plus/icons-vue";
-import type { OnlineUser } from "../../type/collab";
+import type { OnlineUser } from "../../collaboration/types/collaboration";
 
 defineProps<{
   title: string;

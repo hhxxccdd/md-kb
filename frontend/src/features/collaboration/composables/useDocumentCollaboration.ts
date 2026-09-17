@@ -1,7 +1,7 @@
 import { ref, watch, type WatchStopHandle } from "vue";
 import { StateEffect } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
-import type { OnlineUser } from "../type/collab";
+import type { OnlineUser } from "../types/collaboration";
 import { UseCollabSocket } from "./useCollabSocket";
 import { useYjsMarkdown } from "./useYjsMarkdown";
 

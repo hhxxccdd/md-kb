@@ -1,5 +1,5 @@
 import { ref } from "vue";
-import type { CollabMessage, OnlineUser } from "../type/collab";
+import type { CollabMessage, OnlineUser } from "../types/collaboration";
 
 type UseCollabSocketOptions = {
   docId: string | number;

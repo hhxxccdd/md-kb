@@ -8,7 +8,7 @@
             <div class="brand-feature">
                 <div class="feature-item">原生 Markdown 编辑体验</div>
                 <div class="feature-item">带上下文记忆的文档智能问答</div>
-                <div class="feature-item">私有/公开文档权限管理</div>
+                <div class="feature-item">私有/协作文档权限管理</div>
             </div>
         </div>
 
@@ -78,9 +78,9 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { registerUser, sendEmailCode } from '../api/user'
-import { useAuthStore } from '../stores/user'
-import { ApiCode } from '../type/api'
+import { registerUser, sendEmailCode } from '../features/auth/api/user'
+import { useAuthStore } from '../features/auth/stores/useAuthStore'
+import { ApiCode } from '../shared/types/api'
 
 const mode = ref<string>('login')
 const loginMode = ref<string>('password')

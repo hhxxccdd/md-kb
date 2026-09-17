@@ -4,7 +4,7 @@
       <div class="doc-head">
         <div class="doc-title">{{ doc.title }}</div>
         <div class="doc-tag-person" v-show = '!doc.is_shared'>私有</div>
-        <div class="doc-tag-team" v-show = 'doc.is_shared'>团队公开</div>
+        <div class="doc-tag-team" v-show = 'doc.is_shared'>协作</div>
       </div>
 
       <div class="doc-time">更新于 {{ formatTime(doc.updated_at) }}</div>
@@ -22,9 +22,9 @@
 <script lang="ts" setup>
 
 import { useRouter } from 'vue-router'
-import type { DocumentItem } from '../../../api/doc'
-import { deleteDocument, shareDocument } from '../../../api/doc'
-import { getUserNameById } from '../../../api'
+import type { DocumentItem } from '../types/documents'
+import { deleteDocument, shareDocument } from '../api/documents'
+import { getUserNameById } from '../../auth/api/user'
 import { onMounted,ref } from 'vue'
 
 const username = ref<string>('')

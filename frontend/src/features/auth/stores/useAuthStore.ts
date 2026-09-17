@@ -1,24 +1,18 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import router from '../router'
-import { loginUser, emailLoginUser } from '../api'
-import { ApiCode } from '../type/api'
-
-interface userInfo {
-    id: number
-    username: string
-    email: string
-    avatar: string
-}
+import router from '../../../app/router'
+import { loginUser, emailLoginUser } from '../api/user'
+import { ApiCode } from '../../../shared/types/api'
+import type { UserInfo } from '../types/user'
 
 export const useAuthStore = defineStore('auth', () => {
 
     const accessToken = ref<string | null>(localStorage.getItem("accessToken"))
     const refreshToken = ref<string | null>(localStorage.getItem("refreshToken"))
     const stored = localStorage.getItem("userInfo")
-    const userInfo = ref<userInfo | null>(stored && stored !== 'undefined' ? JSON.parse(stored) : null)
+    const userInfo = ref<UserInfo | null>(stored && stored !== 'undefined' ? JSON.parse(stored) : null)
 
-    function persistAuth(access: string, refresh: string, user: userInfo) {
+    function persistAuth(access: string, refresh: string, user: UserInfo) {
         accessToken.value = access
         refreshToken.value = refresh
         userInfo.value = user

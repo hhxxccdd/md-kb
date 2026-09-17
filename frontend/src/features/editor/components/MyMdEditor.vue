@@ -19,7 +19,7 @@ import 'md-editor-v3/lib/style.css';
 import type { ExposeParam } from 'md-editor-v3';
 import type { EditorView } from '@codemirror/view';
 import { Emoji, ExportPDF } from '@vavt/v3-extension'
-import { uploadImage } from '../../api/doc';
+import { uploadImage } from '../../documents/api/documents';
 // 只导入 Emoji 组件需要的样式
 import "@vavt/v3-extension/lib/asset/Emoji.css";
 import '@vavt/v3-extension/lib/asset/ExportPDF.css';

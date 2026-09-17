@@ -1,6 +1,6 @@
 import axios from "axios";
-import router from "../router";
-import { ApiCode } from "../type/api";
+import router from "../../app/router";
+import { ApiCode } from "../types/api";
 
 const request = axios.create({
   baseURL: "http://localhost:3000/api",

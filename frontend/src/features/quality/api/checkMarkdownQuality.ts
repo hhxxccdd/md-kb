@@ -1,7 +1,7 @@
-import request from "../../../utils/request";
+import request from "../../../shared/api/request";
 
 import type { ApiResponse } from
-  "../../../type/api";
+  "../../../shared/types/api";
 
 import type {
   AIMarkdownQualityResult,

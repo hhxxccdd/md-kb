@@ -9,7 +9,7 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/edit/:id?',
         name: 'edit',
-        component: () => import('../views/EditorPage.vue'),
+        component: () => import('../../pages/EditorPage.vue'),
         meta: {
             // 这个页面需要登录后才能访问。
             requiresAuth: true
@@ -18,7 +18,7 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/login',
         name: 'login',
-        component: () => import('../views/Login.vue'),
+        component: () => import('../../pages/LoginPage.vue'),
         meta: {
             // 登录页是公开页面，未登录用户可以访问。
             requiresAuth: false
@@ -27,7 +27,7 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/admin',
         name: 'admin',
-        component: () => import('../views/adminPage.vue'),
+        component: () => import('../../pages/DocumentsPage.vue'),
         meta: {
             // 文档管理页需要登录后才能访问。
             requiresAuth: true
@@ -36,16 +36,10 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/invite/:token',
         name: 'invite',
-        component: () => import('../views/InvitePage.vue'),
+        component: () => import('../../pages/InvitePage.vue'),
         meta: {
             requiresAuth: true
         }
-    },
-    { 
-        path: '/test',
-        name: 'test',
-        component: () => import('../views/InlineDiffDemo.vue')
-
     }
 ]
 
