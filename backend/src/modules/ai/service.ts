@@ -7,8 +7,9 @@ import { AI_CONFIG } from "./config";
 import { requestAI } from "./client";
 
 
-//定义支持的模板类型
-export type PromptTemplateType = keyof typeof AIPromptTemplates
+// 流式文本改写只支持润色和翻译。
+// Markdown 质量检查使用独立的结构化 JSON 接口。
+export type PromptTemplateType = "polish" | "translate"
 
 
 // 封装AI通用流式请求方法
@@ -33,10 +34,6 @@ export async function handleAIStream(req: Request, res: Response, templateType: 
             case "translate":
                 const translateTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["translate"]
                 prompt = translateTemplate(normalizePromptContent(params.content), normalizePromptContent(params.targetLang))
-                break;
-            case "answerDocWithContext":
-                const answerDocTemplate = AIPromptTemplates[templateType] as typeof AIPromptTemplates["answerDocWithContext"]
-                prompt = answerDocTemplate(normalizePromptContent(params.docContent),params.historyMessages, normalizePromptContent(params.question));
                 break;
             default:
                 throwBusinessError("不支持的模板类型");

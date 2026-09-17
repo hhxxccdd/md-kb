@@ -1,7 +1,7 @@
 <template>
   <div class="admin">
     <div class="admin-head">
-      <div class="admin-head-title">AI 知识库</div>
+      <div class="admin-head-title">CollabMD</div>
       <div class="admin-head-right">
         <el-autocomplete
           v-model="searchKeyword"

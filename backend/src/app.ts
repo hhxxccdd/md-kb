@@ -5,7 +5,6 @@ import path from 'path';
 import docrouter from './modules/doc/controller';
 import aiRouter from './modules/ai/controller';
 import uploadRouter from './modules/doc/upload'
-import aiContextRouter from './modules/ai/context';
 import userRouter from './modules/user/controller';
 import { globalErrorHandler } from './middleware/errorMiddleware';
 import { setupCollabServer } from './modules/collab/server';
@@ -27,7 +26,7 @@ app.use('/uploads', express.static(uploadsRoot))
 
 
 app.use('/api/doc',docrouter)
-app.use('/api/ai',aiRouter,aiContextRouter)
+app.use('/api/ai',aiRouter)
 app.use('/api/upload',uploadRouter)
 app.use('/api/user',userRouter)
 

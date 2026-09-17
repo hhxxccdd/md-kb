@@ -3,12 +3,12 @@
     <div class="login-page">
 
         <div class="brand-section">
-            <h1 class="brand-title">AI 增强知识库</h1>
-            <p class="brand-desc">Markdown 编辑 . AI智能问答 . 团队协作</p>
+            <h1 class="brand-title">CollabMD</h1>
+            <p class="brand-desc">Markdown 编辑 · 实时协作 · AI 写作辅助</p>
             <div class="brand-feature">
                 <div class="feature-item">原生 Markdown 编辑体验</div>
-                <div class="feature-item">带上下文记忆的文档智能问答</div>
-                <div class="feature-item">私有/协作文档权限管理</div>
+                <div class="feature-item">基于 Yjs 的多人实时协同</div>
+                <div class="feature-item">AI 润色、翻译与全文质量检查</div>
             </div>
         </div>
 

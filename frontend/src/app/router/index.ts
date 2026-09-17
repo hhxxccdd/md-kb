@@ -54,7 +54,7 @@ router.beforeEach((to) => {
     const accessToken = localStorage.getItem('accessToken')
 
     // 只要目标路由的 meta.requiresAuth === true，就认为它是受保护页面。
-    // 目前 /admin 和 /edit/:id? 都是受保护页面。
+    // 目前 /admin、/edit/:id? 和 /invite/:token 都是受保护页面。
     const requiresAuth = to.matched.some((record) => record.meta.requiresAuth)
 
     // 情况 1：用户访问受保护页面，但本地没有 accessToken。

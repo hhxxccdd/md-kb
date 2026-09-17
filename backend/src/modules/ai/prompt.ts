@@ -83,39 +83,11 @@ ${content}
 【带行号的 Markdown 文档】
 ${numberedContent}
 `,
-
-    /**
-   * 4. 文档问答模板：支持多轮上下文的文档解读专家
-   * @param docContent 文档内容
-   * @param historyMessages 历史对话记录（按时间正序排列）
-   * @param question 当前用户问题
-   */
-    answerDocWithContext: (
-        docContent: string,
-        historyMessages: Array<{ role: 'user' | 'ai'; content: string }>,
-        question: string
-    ) => `
-你是专业的文档解读专家，严格遵守以下规则：
-1. 仅基于提供的【文档内容】和【历史对话记录】回答问题，**禁止编造、扩展文档外信息**
-2. 不知道答案时，固定回复：无法基于当前文档内容回答该问题
-3. 回答简洁专业，无多余内容
-4. 仅输出答案，**不要任何额外解释、开场白、结束语**
-5. 结合历史对话理解用户的指代性问题（如“它”“这个”“上文提到的”等）
-
-【文档内容】
-${docContent}
-
-【历史对话记录】
-${historyMessages.map(msg => `${msg.role === 'user' ? '用户' : 'AI'}:${msg.content}`).join('\n')}
-
-【当前用户问题】
-${question}
-`
 };
 
-// 参数校验：防注入（过滤特殊字符）
+// 保留 Markdown 换行语义，只统一换行符并移除空字符。
 export function normalizePromptContent(content: string) {
   return content
-    .replace(/\r\n?/g, '\n')
-    .replace(/\u0000/g, '')
+    .replace(/\r\n?/g, "\n")
+    .replace(/\u0000/g, "");
 }

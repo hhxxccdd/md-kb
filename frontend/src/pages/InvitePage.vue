@@ -1,7 +1,7 @@
 <template>
   <div class="invite-page">
     <header class="invite-head">
-      <div class="invite-head-title" @click="router.push('/admin')">AI 知识库</div>
+      <div class="invite-head-title" @click="router.push('/admin')">CollabMD</div>
       <div class="invite-head-user">
         <el-avatar :size="40" :src="userInfo?.avatar" />
         <span>{{ userInfo?.username }}</span>
